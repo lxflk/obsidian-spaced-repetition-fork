@@ -18,7 +18,10 @@ import ControlsComponent from "src/ui/obsidian-ui-components/content-container/c
 import InfoSection from "src/ui/obsidian-ui-components/content-container/card-container/deck-info/info-section";
 import ResponseSectionComponent from "src/ui/obsidian-ui-components/content-container/card-container/response-section/response-section";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
-import { getOrCreateSideBySideLeaf } from "src/ui/workspace-window-utils";
+import {
+    getOrCreateSideBySideLeaf,
+    openMarkdownFileInLeaf,
+} from "src/ui/workspace-window-utils";
 import EmulatedPlatform from "src/utils/platform-detector";
 import { RenderMarkdownWrapper } from "src/utils/renderers";
 
@@ -323,7 +326,7 @@ export class CardContainer {
             ? this.app.workspace.getLeaf("tab")
             : getOrCreateSideBySideLeaf(this.app, this.sourceLeaf);
 
-        await leaf.openFile(file, { eState: { line } });
+        await openMarkdownFileInLeaf(leaf, file, line);
         await leaf.loadIfDeferred();
         await this.app.workspace.revealLeaf(leaf);
 
