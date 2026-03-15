@@ -173,6 +173,8 @@ export class SRTabView extends ItemView {
                     this.viewContentEl.createDiv(),
                     this._showDecksList.bind(this),
                     this._doEditQuestionText.bind(this),
+                    undefined,
+                    this.leaf,
                 );
             }
 

@@ -89,6 +89,7 @@ export class SRModalView extends Modal {
             this._showDecksList.bind(this),
             this._doEditQuestionText.bind(this),
             this.close.bind(this),
+            this.app.workspace.activeLeaf ?? undefined,
         );
     }
 

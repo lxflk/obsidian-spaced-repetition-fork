@@ -1,5 +1,5 @@
 import { now } from "moment";
-import { App, MarkdownView, Notice, Platform } from "obsidian";
+import { App, MarkdownView, Notice, Platform, WorkspaceLeaf } from "obsidian";
 
 import { ReviewResponse } from "src/algorithms/base/repetition-item";
 import { Card } from "src/card/card";
@@ -18,6 +18,7 @@ import ControlsComponent from "src/ui/obsidian-ui-components/content-container/c
 import InfoSection from "src/ui/obsidian-ui-components/content-container/card-container/deck-info/info-section";
 import ResponseSectionComponent from "src/ui/obsidian-ui-components/content-container/card-container/response-section/response-section";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
+import { getOrCreateSideBySideLeaf } from "src/ui/workspace-window-utils";
 import EmulatedPlatform from "src/utils/platform-detector";
 import { RenderMarkdownWrapper } from "src/utils/renderers";
 
@@ -58,6 +59,7 @@ export class CardContainer {
     private backToDeck: () => void;
     private editClickHandler: () => void;
     private closeModal: () => void | undefined;
+    private sourceLeaf?: WorkspaceLeaf;
 
     constructor(
         app: App,
@@ -69,6 +71,7 @@ export class CardContainer {
         backToDeck: () => void,
         editClickHandler: () => void,
         closeModal?: () => void,
+        sourceLeaf?: WorkspaceLeaf,
     ) {
         // Init properties
         this.app = app;
@@ -81,6 +84,7 @@ export class CardContainer {
         this.view = view;
         this.chosenDeck = null;
         this.closeModal = closeModal;
+        this.sourceLeaf = sourceLeaf;
 
         // Build ui
         this.init();
@@ -281,31 +285,29 @@ export class CardContainer {
         const currentQuestion = this.reviewSequencer.currentQuestion;
         if (!currentQuestion) return;
 
-        if (
-            (!this.settings.openViewInNewTab &&
-                !(Platform.isMobile || EmulatedPlatform().isMobile)) ||
-            (!this.settings.openViewInNewTabMobile &&
-                (Platform.isMobile || EmulatedPlatform().isMobile))
-        ) {
-            new Notice("Note was opened in new tab in the background");
-        }
+        const isMobile = Platform.isMobile || EmulatedPlatform().isMobile;
+        const isModalReview =
+            (!isMobile && !this.settings.openViewInNewTab) ||
+            (isMobile && !this.settings.openViewInNewTabMobile);
 
         const file = currentQuestion.note.file.tfile;
-        const blockId = currentQuestion.questionText.obsidianBlockId;
         const line = Math.max(0, currentQuestion.lineNo ?? 0);
+        const leaf = isMobile
+            ? this.app.workspace.getLeaf("tab")
+            : getOrCreateSideBySideLeaf(this.app, this.sourceLeaf);
 
-        if (blockId) {
-            await this.app.workspace.openLinkText(`${file.path}#${blockId}`, file.path, false);
-            return;
-        }
-
-        const leaf = this.app.workspace.getLeaf("tab");
         await leaf.openFile(file, { eState: { line } });
+        await leaf.loadIfDeferred();
+        await this.app.workspace.revealLeaf(leaf);
 
         const markdownView = leaf.view as MarkdownView;
         if (markdownView?.editor) {
             markdownView.editor.setCursor({ line, ch: 0 });
             markdownView.editor.scrollIntoView({ from: { line, ch: 0 }, to: { line, ch: 0 } });
+        }
+
+        if (isModalReview && !isMobile) {
+            new Notice("Note was opened in a split behind the review modal");
         }
     }
 

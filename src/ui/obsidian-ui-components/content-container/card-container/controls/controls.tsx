@@ -3,17 +3,17 @@ import { App, Menu, Platform } from "obsidian";
 import { ReviewResponse } from "src/algorithms/base/repetition-item";
 import { t } from "src/lang/helpers";
 import BackButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/back-button";
-import EditButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/edit-button";
 import MenuDotsButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/menu-dots-button";
 import ResetButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/reset-button";
 import SkipButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/skip-button";
 import ModalCloseButtonComponent from "src/ui/obsidian-ui-components/content-container/modal-close-button";
+import SRButtonComponent from "src/ui/sr-button";
 import EmulatedPlatform from "src/utils/platform-detector";
 
 export default class ControlsComponent {
     public controls: HTMLDivElement;
     public backButton: BackButtonComponent;
-    public editButton: EditButtonComponent;
+    public jumpToCardButton: SRButtonComponent;
     public modalCloseButton: ModalCloseButtonComponent;
     public resetButton: ResetButtonComponent;
     public skipButton: SkipButtonComponent;
@@ -31,6 +31,8 @@ export default class ControlsComponent {
         jumpToCurrentCard: () => Promise<void>,
         closeModal?: () => void,
     ) {
+        const jumpToCardTitle = "Jump to card"; // TODO: Translate
+
         this.controls = container.createDiv();
         this.controls.addClass("sr-controls");
 
@@ -42,10 +44,19 @@ export default class ControlsComponent {
 
         this.controls.createDiv().addClass("sr-flex-spacer");
 
-        this.editButton = new EditButtonComponent(
+        this.jumpToCardButton = new SRButtonComponent(
             this.controls,
-            () => editClickHandler(),
-            EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : undefined,
+            {
+                classNames: [
+                    "sr-edit-button",
+                    ...(EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : []),
+                ],
+                icon: "arrow-up-right",
+                tooltip: jumpToCardTitle,
+                onClick: () => {
+                    jumpToCurrentCard();
+                },
+            },
         );
 
         this.menuDotsButton = new MenuDotsButtonComponent(
@@ -54,10 +65,10 @@ export default class ControlsComponent {
                 const cardMenu = new Menu();
 
                 cardMenu.addItem((item) => {
-                    item.setTitle("Jump to card") // TODO: Translate
-                        .setIcon("arrow-up-right")
+                    item.setTitle(t("EDIT_CARD"))
+                        .setIcon("edit")
                         .onClick(() => {
-                            jumpToCurrentCard();
+                            editClickHandler();
                         });
                 });
                 cardMenu.addItem((item) => {
