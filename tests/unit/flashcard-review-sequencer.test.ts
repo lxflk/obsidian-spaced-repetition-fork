@@ -496,6 +496,32 @@ describe("processReview", () => {
 
                 expect(card.scheduleInfo.dueDate.format("YYYY-MM-DD")).toEqual(againCardDueDate);
             });
+
+            test("Card stays in the queue and becomes accessible again after other cards", async () => {
+                const text: string = `
+                    #flashcards Q1::A1 <!--SR:!2023-09-06,4,270-->
+                    #flashcards Q2::A2 <!--SR:!2023-09-02,5,270-->
+                    #flashcards Q3::A3 <!--SR:!2023-09-02,6,270-->`;
+
+                const c: TestContext = TestContext.Create(
+                    orderDueFirstSequential,
+                    FlashcardReviewMode.Review,
+                    DEFAULT_SETTINGS,
+                    text,
+                );
+                await c.setSequencerDeckTreeFromOriginalText();
+
+                expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(3, 3, 0, 3, 3, 0, 3, 0, 1));
+                expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
+
+                await c.reviewSequencer.processReview(ReviewResponse.Again);
+
+                expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(3, 3, 0, 3, 3, 0, 3, 0, 1));
+                expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
+
+                skipThenCheckCardFront(c.reviewSequencer, "Q3");
+                skipThenCheckCardFront(c.reviewSequencer, "Q1");
+            });
         });
 
         describe("ReviewResponse.Easy", () => {

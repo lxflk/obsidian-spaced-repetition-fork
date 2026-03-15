@@ -91,6 +91,11 @@ export class SRModalView extends Modal {
             this.close.bind(this),
             this.app.workspace.activeLeaf ?? undefined,
         );
+        this.registerEvent(
+            this.app.metadataCache.on("changed", (file) => {
+                this.cardContainer.scheduleRefreshForModifiedNote(file);
+            }),
+        );
     }
 
     onOpen(): void {

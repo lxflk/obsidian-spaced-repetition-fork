@@ -273,6 +273,9 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         if (response === ReviewResponse.Reset) {
             this.cardSequencer.moveCurrentCardToEndOfList();
             this.cardSequencer.nextCard();
+        } else if (response === ReviewResponse.Again) {
+            this.cardSequencer.moveCurrentCardToEndOfList();
+            this.cardSequencer.nextCard();
         } else {
             if (this.settings.burySiblingCards) {
                 await this.burySiblingCards();

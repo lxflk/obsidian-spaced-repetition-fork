@@ -1,5 +1,5 @@
 import { now } from "moment";
-import { App, MarkdownView, Notice, Platform, WorkspaceLeaf } from "obsidian";
+import { App, MarkdownView, Notice, Platform, TFile, WorkspaceLeaf } from "obsidian";
 
 import { ReviewResponse } from "src/algorithms/base/repetition-item";
 import { Card } from "src/card/card";
@@ -60,6 +60,9 @@ export class CardContainer {
     private editClickHandler: () => void;
     private closeModal: () => void | undefined;
     private sourceLeaf?: WorkspaceLeaf;
+    private noteRefreshTimeout: number | null = null;
+    private isRefreshingCurrentNote: boolean = false;
+    private shouldRefreshCurrentNoteAgain: boolean = false;
 
     constructor(
         app: App,
@@ -159,8 +162,13 @@ export class CardContainer {
     /**
      * Refreshes all dynamic elements
      */
-    async refresh() {
+    async refresh(preserveSide: boolean = false) {
+        const shouldShowAnswer = preserveSide && this.mode === FlashcardMode.Back;
         await this._drawContent();
+
+        if (shouldShowAnswer) {
+            this._renderAnswer();
+        }
     }
 
     /**
@@ -182,6 +190,10 @@ export class CardContainer {
      */
     close() {
         this.hide();
+        if (this.noteRefreshTimeout !== null) {
+            window.clearTimeout(this.noteRefreshTimeout);
+            this.noteRefreshTimeout = null;
+        }
         document.removeEventListener("keydown", this._keydownHandler);
     }
 
@@ -281,6 +293,21 @@ export class CardContainer {
         new CardInfoNotice(this._currentCard.scheduleInfo, this._currentQuestion.note.filePath);
     }
 
+    public scheduleRefreshForModifiedNote(file: TFile): void {
+        if (!this.isActive || this._currentQuestion?.note?.filePath !== file.path) {
+            return;
+        }
+
+        if (this.noteRefreshTimeout !== null) {
+            window.clearTimeout(this.noteRefreshTimeout);
+        }
+
+        this.noteRefreshTimeout = window.setTimeout(() => {
+            this.noteRefreshTimeout = null;
+            void this._refreshCurrentCardFromNote(file);
+        }, 150);
+    }
+
     private async _jumpToCurrentCard(): Promise<void> {
         const currentQuestion = this.reviewSequencer.currentQuestion;
         if (!currentQuestion) return;
@@ -309,6 +336,87 @@ export class CardContainer {
         if (isModalReview && !isMobile) {
             new Notice("Note was opened in a split behind the review modal");
         }
+    }
+
+    private async _refreshCurrentCardFromNote(file: TFile): Promise<void> {
+        if (!this.isActive || this._currentQuestion?.note?.filePath !== file.path) {
+            return;
+        }
+
+        if (this.isRefreshingCurrentNote) {
+            this.shouldRefreshCurrentNoteAgain = true;
+            return;
+        }
+
+        this.isRefreshingCurrentNote = true;
+
+        try {
+            const currentQuestion = this._currentQuestion;
+            const currentCard = this._currentCard;
+            if (!currentQuestion || !currentCard) {
+                return;
+            }
+
+            const refreshedNote = await this.plugin.loadNote(file);
+            const refreshedQuestion = this._findMatchingQuestion(
+                refreshedNote.questionList,
+                currentQuestion,
+            );
+            const refreshedCard = refreshedQuestion?.cards[currentCard.cardIdx];
+
+            if (!refreshedQuestion || !refreshedCard) {
+                return;
+            }
+
+            this._applyRefreshedCurrentCard(
+                currentQuestion,
+                currentCard,
+                refreshedQuestion,
+                refreshedCard,
+            );
+            await this.refresh(true);
+        } finally {
+            this.isRefreshingCurrentNote = false;
+
+            if (this.shouldRefreshCurrentNoteAgain) {
+                this.shouldRefreshCurrentNoteAgain = false;
+                void this._refreshCurrentCardFromNote(file);
+            }
+        }
+    }
+
+    private _findMatchingQuestion(questionList: Question[], currentQuestion: Question): Question | null {
+        const currentBlockId = currentQuestion.questionText.obsidianBlockId;
+
+        return (
+            questionList.find(
+                (question) =>
+                    currentBlockId &&
+                    question.questionText.obsidianBlockId &&
+                    question.questionText.obsidianBlockId === currentBlockId,
+            ) ??
+            questionList.find((question) => question.lineNo === currentQuestion.lineNo) ??
+            null
+        );
+    }
+
+    private _applyRefreshedCurrentCard(
+        currentQuestion: Question,
+        currentCard: Card,
+        refreshedQuestion: Question,
+        refreshedCard: Card,
+    ): void {
+        const refreshedCards = [...refreshedQuestion.cards];
+
+        Object.assign(currentQuestion, refreshedQuestion);
+        Object.assign(currentCard, refreshedCard);
+
+        currentCard.question = currentQuestion;
+        refreshedCards[currentCard.cardIdx] = currentCard;
+        refreshedCards.forEach((card) => {
+            card.question = currentQuestion;
+        });
+        currentQuestion.cards = refreshedCards;
     }
 
     // #region -> Deck Info
@@ -377,6 +485,10 @@ export class CardContainer {
         }
         this.lastPressed = timeNow;
 
+        this._renderAnswer();
+    }
+
+    private _renderAnswer(): void {
         this.mode = FlashcardMode.Back;
 
         this.controls.resetButton.setDisabled(false);

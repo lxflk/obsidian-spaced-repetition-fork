@@ -176,6 +176,11 @@ export class SRTabView extends ItemView {
                     undefined,
                     this.leaf,
                 );
+                this.registerEvent(
+                    this.app.metadataCache.on("changed", (file) => {
+                        this.cardContainer.scheduleRefreshForModifiedNote(file);
+                    }),
+                );
             }
 
             const subdecksWithCardsInQueue: Deck[] =
