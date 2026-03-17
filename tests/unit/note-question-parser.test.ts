@@ -196,6 +196,54 @@ In computer-science, a *heap* is a tree-based data-structure, that satisfies the
             ),
         ).toMatchObject(expected);
     });
+
+    test("Bounded multiline basic card", async () => {
+        const settings: SRSettings = {
+            ...DEFAULT_SETTINGS,
+            multilineCardStartMarker: "===start===",
+            multilineCardScopedSeparator: "===",
+            multilineCardScopedEndMarker: "===end===",
+        };
+        const parser = createTestNoteQuestionParser(settings);
+        const noteText: string = `#flashcards
+===start===
+Question line 1
+Question line 2
+===
+Answer line 1
+Answer line 2
+===end===
+`;
+        const noteFile: ISRFile = new UnitTestSRFile(noteText);
+
+        const expected = [
+            {
+                questionType: CardType.MultiLineBasic,
+                topicPathList: TopicPathList.fromPsv("#flashcards", 0),
+                questionText: {
+                    original:
+                        "===start===\nQuestion line 1\nQuestion line 2\n===\nAnswer line 1\nAnswer line 2\n===end===",
+                    actualQuestion:
+                        "===start===\nQuestion line 1\nQuestion line 2\n===\nAnswer line 1\nAnswer line 2\n===end===",
+                },
+                cards: [
+                    {
+                        front: "Question line 1\nQuestion line 2",
+                        back: "Answer line 1\nAnswer line 2",
+                    },
+                ],
+            },
+        ];
+
+        expect(
+            await parser.createQuestionList(
+                noteFile,
+                TextDirection.Ltr,
+                TopicPath.emptyPath,
+                true,
+            ),
+        ).toMatchObject(expected);
+    });
 });
 
 describe("Single question in the text (with block identifier)", () => {

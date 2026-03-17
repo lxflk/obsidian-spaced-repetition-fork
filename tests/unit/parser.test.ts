@@ -8,6 +8,9 @@ const parserOptions: ParserOptions = {
     multilineCardSeparator: "?",
     multilineReversedCardSeparator: "??",
     multilineCardEndMarker: "",
+    multilineCardStartMarker: "",
+    multilineCardScopedSeparator: "",
+    multilineCardScopedEndMarker: "",
     clozePatterns: [
         "==[123;;]answer[;;hint]==",
         "**[123;;]answer[;;hint]**",
@@ -231,9 +234,77 @@ test("Test parsing of multi line basic cards", () => {
             multilineCardSeparator: "@@",
             multilineReversedCardSeparator: "??",
             multilineCardEndMarker: "",
+            multilineCardStartMarker: "",
+            multilineCardScopedSeparator: "",
+            multilineCardScopedEndMarker: "",
             clozePatterns: [],
         }),
     ).toEqual([[CardType.MultiLineBasic, "Question\n@@\nAnswer", 0, 2]]);
+
+    expect(
+        parseT(
+            "===start===\nQuestion line 1\nQuestion line 2\n===\nAnswer line 1\n===end===",
+            {
+                singleLineCardSeparator: "::",
+                singleLineReversedCardSeparator: ":::",
+                multilineCardSeparator: "?",
+                multilineReversedCardSeparator: "??",
+                multilineCardEndMarker: "",
+                multilineCardStartMarker: "===start===",
+                multilineCardScopedSeparator: "===",
+                multilineCardScopedEndMarker: "===end===",
+                clozePatterns: [],
+            },
+        ),
+    ).toEqual([
+        [
+            CardType.MultiLineBasic,
+            "===start===\nQuestion line 1\nQuestion line 2\n===\nAnswer line 1\n===end===",
+            0,
+            5,
+        ],
+    ]);
+
+    expect(
+        parseT(
+            "===start===\nQuestion\n===\nAnswer\n===end===\n<!--SR:!2021-08-11,4,270-->",
+            {
+                singleLineCardSeparator: "::",
+                singleLineReversedCardSeparator: ":::",
+                multilineCardSeparator: "?",
+                multilineReversedCardSeparator: "??",
+                multilineCardEndMarker: "",
+                multilineCardStartMarker: "===start===",
+                multilineCardScopedSeparator: "===",
+                multilineCardScopedEndMarker: "===end===",
+                clozePatterns: [],
+            },
+        ),
+    ).toEqual([
+        [
+            CardType.MultiLineBasic,
+            "===start===\nQuestion\n===\nAnswer\n===end===\n<!--SR:!2021-08-11,4,270-->",
+            0,
+            5,
+        ],
+    ]);
+
+    expect(
+        parseT(
+            "===start===\nQuestion\n===\nAnswer\n===end===",
+            {
+                singleLineCardSeparator: "::",
+                singleLineReversedCardSeparator: ":::",
+                multilineCardSeparator: "?",
+                multilineReversedCardSeparator: "??",
+                multilineCardEndMarker: "",
+                multilineCardStartMarker: "===start===",
+                multilineCardScopedSeparator: "",
+                multilineCardScopedEndMarker: "===end===",
+                clozePatterns: [],
+            },
+        ),
+    ).toEqual([]);
 
     // empty string or whitespace character provided
     expect(
@@ -243,6 +314,9 @@ test("Test parsing of multi line basic cards", () => {
             multilineCardSeparator: "",
             multilineReversedCardSeparator: "??",
             multilineCardEndMarker: "---",
+            multilineCardStartMarker: "",
+            multilineCardScopedSeparator: "",
+            multilineCardScopedEndMarker: "",
             clozePatterns: [],
         }),
     ).toEqual([]);

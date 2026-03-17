@@ -21,6 +21,9 @@ export interface SRSettings {
     multilineCardSeparator: string;
     multilineReversedCardSeparator: string;
     multilineCardEndMarker: string;
+    multilineCardStartMarker: string;
+    multilineCardScopedSeparator: string;
+    multilineCardScopedEndMarker: string;
     editLaterTag: string;
 
     // notes
@@ -87,6 +90,9 @@ export const DEFAULT_SETTINGS: SRSettings = {
     multilineCardSeparator: "?",
     multilineReversedCardSeparator: "??",
     multilineCardEndMarker: "",
+    multilineCardStartMarker: "",
+    multilineCardScopedSeparator: "",
+    multilineCardScopedEndMarker: "",
     editLaterTag: "#edit-later",
 
     // notes
@@ -163,6 +169,34 @@ export function upgradeSettings(settings: SRSettings) {
         if (settings.convertCurlyBracketsToClozes)
             settings.clozePatterns.push("{{[123;;]answer[;;hint]}}");
     }
+
+    if (settings.multilineCardStartMarker === null || settings.multilineCardStartMarker === undefined) {
+        settings.multilineCardStartMarker = DEFAULT_SETTINGS.multilineCardStartMarker;
+    }
+
+    if (
+        settings.multilineCardScopedSeparator === null ||
+        settings.multilineCardScopedSeparator === undefined
+    ) {
+        settings.multilineCardScopedSeparator = DEFAULT_SETTINGS.multilineCardScopedSeparator;
+    }
+
+    if (
+        settings.multilineCardScopedEndMarker === null ||
+        settings.multilineCardScopedEndMarker === undefined
+    ) {
+        settings.multilineCardScopedEndMarker = DEFAULT_SETTINGS.multilineCardScopedEndMarker;
+    }
+}
+
+export interface MultilineCardBlockConfig {
+    startMarker: string;
+    separator: string;
+    endMarker: string;
+}
+
+function normalizeMarker(marker: string): string {
+    return marker?.trim() ?? "";
 }
 
 export class SettingsUtil {
@@ -185,6 +219,30 @@ export class SettingsUtil {
             }
         }
         return false;
+    }
+
+    static getMultilineCardBlockConfig(settings: SRSettings): MultilineCardBlockConfig | null {
+        const startMarker = normalizeMarker(settings.multilineCardStartMarker);
+        const separator = normalizeMarker(settings.multilineCardScopedSeparator);
+        const endMarker = normalizeMarker(settings.multilineCardScopedEndMarker);
+
+        if (!startMarker || !separator || !endMarker) {
+            return null;
+        }
+
+        if (new Set([startMarker, separator, endMarker]).size !== 3) {
+            return null;
+        }
+
+        if (separator === normalizeMarker(settings.multilineCardSeparator)) {
+            return null;
+        }
+
+        return {
+            startMarker,
+            separator,
+            endMarker,
+        };
     }
 
     // Given a list of tags, return the subset that is in settings.tagsToReview

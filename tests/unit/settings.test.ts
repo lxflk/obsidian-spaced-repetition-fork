@@ -14,6 +14,38 @@ describe("SettingsUtil", () => {
         expect(SettingsUtil.isAnyTagANoteReviewTag(settings, ["#test"])).toEqual(false);
     });
 
+    test("getMultilineCardBlockConfig", () => {
+        let settings: SRSettings = { ...DEFAULT_SETTINGS };
+        expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual(null);
+
+        settings = {
+            ...DEFAULT_SETTINGS,
+            multilineCardStartMarker: "===start===",
+            multilineCardScopedSeparator: "===",
+        };
+        expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual(null);
+
+        settings = {
+            ...DEFAULT_SETTINGS,
+            multilineCardStartMarker: "===start===",
+            multilineCardScopedSeparator: "?",
+            multilineCardScopedEndMarker: "===end===",
+        };
+        expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual(null);
+
+        settings = {
+            ...DEFAULT_SETTINGS,
+            multilineCardStartMarker: "===start===",
+            multilineCardScopedSeparator: "===",
+            multilineCardScopedEndMarker: "===end===",
+        };
+        expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual({
+            startMarker: "===start===",
+            separator: "===",
+            endMarker: "===end===",
+        });
+    });
+
     test("upgradeSettings", () => {
         let settings: SRSettings = { ...DEFAULT_SETTINGS };
         upgradeSettings(settings);
@@ -57,5 +89,14 @@ describe("SettingsUtil", () => {
             convertHighlightsToClozes: false,
             clozePatterns: ["{{[123;;]answer[;;hint]}}"],
         });
+
+        settings = {
+            ...DEFAULT_SETTINGS,
+            multilineCardStartMarker: null,
+            multilineCardScopedSeparator: null,
+            multilineCardScopedEndMarker: null,
+        };
+        upgradeSettings(settings);
+        expect(settings).toEqual(DEFAULT_SETTINGS);
     });
 });

@@ -10,6 +10,9 @@ export interface ParserOptions {
     multilineCardSeparator: string;
     multilineReversedCardSeparator: string;
     multilineCardEndMarker: string;
+    multilineCardStartMarker?: string;
+    multilineCardScopedSeparator?: string;
+    multilineCardScopedEndMarker?: string;
     clozePatterns: string[];
 }
 
@@ -70,6 +73,49 @@ function hasInlineMarker(text: string, marker: string): boolean {
     return !markerInsideCodeBlock(text, marker, markerIdx);
 }
 
+interface MultilineCardBlockConfig {
+    startMarker: string;
+    separator: string;
+    endMarker: string;
+}
+
+interface ActiveMultilineCardBlock {
+    hasFrontContent: boolean;
+    hasSeparator: boolean;
+}
+
+function getMultilineCardBlockConfig(options: ParserOptions): MultilineCardBlockConfig | null {
+    const startMarker = options.multilineCardStartMarker?.trim() ?? "";
+    const separator = options.multilineCardScopedSeparator?.trim() ?? "";
+    const endMarker = options.multilineCardScopedEndMarker?.trim() ?? "";
+
+    if (!startMarker || !separator || !endMarker) {
+        return null;
+    }
+
+    if (new Set([startMarker, separator, endMarker]).size !== 3) {
+        return null;
+    }
+
+    if (separator === options.multilineCardSeparator?.trim()) {
+        return null;
+    }
+
+    return {
+        startMarker,
+        separator,
+        endMarker,
+    };
+}
+
+function lineHasScopedCardEndMarker(text: string, endMarker: string): boolean {
+    if (text === endMarker) {
+        return true;
+    }
+
+    return text.startsWith(endMarker) && text.slice(endMarker.length).trimStart().startsWith("<!--SR:");
+}
+
 /**
  * Returns flashcards found in `text`
  *
@@ -94,9 +140,11 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
     const cards: ParsedQuestionInfo[] = [];
     let cardText = "";
     let cardType: CardType | null = null;
+    let activeMultilineCardBlock: ActiveMultilineCardBlock | null = null;
     let firstLineNo = 0,
         lastLineNo: number;
 
+    const multilineCardBlockConfig = getMultilineCardBlockConfig(options);
     const clozecrafter = new ClozeCrafter(options.clozePatterns);
     const lines: string[] = text.replaceAll("\r\n", "\n").split("\n");
     for (let i = 0; i < lines.length; i++) {
@@ -107,6 +155,51 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
         if (currentLine.startsWith("<!--") && !currentLine.startsWith("<!--SR:")) {
             while (i + 1 < lines.length && !currentLine.includes("-->")) i++;
             i++;
+            continue;
+        }
+
+        if (activeMultilineCardBlock) {
+            if (cardText.length > 0) {
+                cardText += "\n";
+            }
+            cardText += currentLine.trimEnd();
+
+            if (!activeMultilineCardBlock.hasSeparator) {
+                if (currentTrimmed === multilineCardBlockConfig.separator) {
+                    activeMultilineCardBlock.hasSeparator = activeMultilineCardBlock.hasFrontContent;
+                } else if (currentTrimmed.length > 0) {
+                    activeMultilineCardBlock.hasFrontContent = true;
+                }
+            }
+
+            if (lineHasScopedCardEndMarker(currentTrimmed, multilineCardBlockConfig.endMarker)) {
+                if (
+                    i + 1 < lines.length &&
+                    !currentTrimmed.includes("<!--SR:") &&
+                    lines[i + 1].startsWith("<!--SR:")
+                ) {
+                    cardText += "\n" + lines[i + 1];
+                    i++;
+                }
+
+                if (activeMultilineCardBlock.hasSeparator) {
+                    lastLineNo = i;
+                    cards.push(
+                        new ParsedQuestionInfo(
+                            CardType.MultiLineBasic,
+                            cardText.trimEnd(),
+                            firstLineNo,
+                            lastLineNo,
+                        ),
+                    );
+                }
+
+                cardType = null;
+                cardText = "";
+                activeMultilineCardBlock = null;
+                firstLineNo = i + 1;
+            }
+
             continue;
         }
 
@@ -134,6 +227,17 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
 
             cardText = "";
             firstLineNo = i + 1;
+            continue;
+        }
+
+        if (multilineCardBlockConfig && currentTrimmed === multilineCardBlockConfig.startMarker) {
+            cardText = currentLine.trimEnd();
+            cardType = CardType.MultiLineBasic;
+            activeMultilineCardBlock = {
+                hasFrontContent: false,
+                hasSeparator: false,
+            };
+            firstLineNo = i;
             continue;
         }
 
@@ -194,7 +298,7 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
     }
 
     // Do we have a card left in the queue?
-    if (cardType && cardText) {
+    if (cardType && cardText && !activeMultilineCardBlock) {
         lastLineNo = lines.length - 1;
         cards.push(new ParsedQuestionInfo(cardType, cardText.trimEnd(), firstLineNo, lastLineNo));
     }

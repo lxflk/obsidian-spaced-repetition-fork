@@ -28,6 +28,23 @@ describe("CardType.MultiLineBasic", () => {
             ),
         ).toEqual([new CardFrontBack("A1\nA2", "B1\nB2")]);
     });
+
+    test("Bounded multiline syntax", () => {
+        const settings: SRSettings = {
+            ...DEFAULT_SETTINGS,
+            multilineCardStartMarker: "===start===",
+            multilineCardScopedSeparator: "===",
+            multilineCardScopedEndMarker: "===end===",
+        };
+
+        expect(
+            CardFrontBackUtil.expand(
+                CardType.MultiLineBasic,
+                "===start===\nA1\nA2\n===\nB1\nB2\n===end===",
+                settings,
+            ),
+        ).toEqual([new CardFrontBack("A1\nA2", "B1\nB2")]);
+    });
 });
 
 test("CardType.MultiLineReversed", () => {

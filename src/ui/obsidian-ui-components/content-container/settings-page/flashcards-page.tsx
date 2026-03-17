@@ -467,6 +467,93 @@ export class FlashcardsPage extends SettingsPage {
                                 });
                             }),
                     );
+            })
+            .addSetting((setting: Setting) => {
+                setting
+                    .setName("Bounded multiline card start marker")
+                    .setDesc(
+                        "Set this together with the bounded separator and bounded end marker to enable cards like ===start=== ... ===end===.",
+                    )
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.multilineCardStartMarker =
+                                    DEFAULT_SETTINGS.multilineCardStartMarker;
+                                await this.plugin.savePluginData();
+
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.plugin.data.settings.multilineCardStartMarker)
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    this.plugin.data.settings.multilineCardStartMarker = value;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
+            })
+            .addSetting((setting: Setting) => {
+                setting
+                    .setName("Bounded multiline card separator")
+                    .setDesc(
+                        "This separator is only used between the bounded start and end markers, and it must differ from the regular multiline separator.",
+                    )
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.multilineCardScopedSeparator =
+                                    DEFAULT_SETTINGS.multilineCardScopedSeparator;
+                                await this.plugin.savePluginData();
+
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.plugin.data.settings.multilineCardScopedSeparator)
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    this.plugin.data.settings.multilineCardScopedSeparator = value;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
+            })
+            .addSetting((setting: Setting) => {
+                setting
+                    .setName("Bounded multiline card end marker")
+                    .setDesc(
+                        "The bounded multiline syntax only activates when the start marker, bounded separator, and end marker are all set.",
+                    )
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.multilineCardScopedEndMarker =
+                                    DEFAULT_SETTINGS.multilineCardScopedEndMarker;
+                                await this.plugin.savePluginData();
+
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.plugin.data.settings.multilineCardScopedEndMarker)
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    this.plugin.data.settings.multilineCardScopedEndMarker = value;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
             });
     }
 }

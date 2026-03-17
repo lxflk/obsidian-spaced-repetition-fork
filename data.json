@@ -19,7 +19,7 @@
     "singleLineReversedCardSeparator": ":::",
     "multilineCardSeparator": "?",
     "multilineReversedCardSeparator": "??",
-    "multilineCardEndMarker": "",
+    "multilineCardEndMarker": "===end===",
     "editLaterTag": "#edit-later",
     "enableNoteReviewPaneOnStartup": true,
     "tagsToReview": [

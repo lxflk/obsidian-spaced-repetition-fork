@@ -144,12 +144,16 @@ export class NoteQuestionParser {
 
     private parseQuestions(): ParsedQuestionInfo[] {
         const settings = this.settings;
+        const multilineCardBlockConfig = SettingsUtil.getMultilineCardBlockConfig(settings);
         const parserOptions: ParserOptions = {
             singleLineCardSeparator: settings.singleLineCardSeparator,
             singleLineReversedCardSeparator: settings.singleLineReversedCardSeparator,
             multilineCardSeparator: settings.multilineCardSeparator,
             multilineReversedCardSeparator: settings.multilineReversedCardSeparator,
             multilineCardEndMarker: settings.multilineCardEndMarker,
+            multilineCardStartMarker: multilineCardBlockConfig?.startMarker ?? "",
+            multilineCardScopedSeparator: multilineCardBlockConfig?.separator ?? "",
+            multilineCardScopedEndMarker: multilineCardBlockConfig?.endMarker ?? "",
             clozePatterns: settings.clozePatterns,
         };
 

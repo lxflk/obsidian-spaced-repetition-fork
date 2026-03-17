@@ -1,7 +1,7 @@
 import { ClozeCrafter, IClozeFormatter } from "clozecraft";
 
 import { CardType } from "src/card/questions/question";
-import { SRSettings } from "src/settings";
+import { SettingsUtil, SRSettings } from "src/settings";
 import { findLineIndexOfSearchStringIgnoringWs } from "src/utils/strings";
 
 export class CardFrontBack {
@@ -61,12 +61,26 @@ class QuestionTypeMultiLineBasic implements IQuestionTypeHandler {
     expand(questionText: string, settings: SRSettings): CardFrontBack[] {
         // We don't need to worry about "\r\n", as multi line questions processed by parse() concatenates lines explicitly with "\n"
         const questionLines = questionText.split("\n");
-        const lineIdx = findLineIndexOfSearchStringIgnoringWs(
-            questionLines,
-            settings.multilineCardSeparator,
-        );
-        const side1: string = questionLines.slice(0, lineIdx).join("\n");
-        const side2: string = questionLines.slice(lineIdx + 1).join("\n");
+        const blockConfig = SettingsUtil.getMultilineCardBlockConfig(settings);
+
+        let side1: string;
+        let side2: string;
+        if (
+            blockConfig &&
+            questionLines[0]?.trim() === blockConfig.startMarker &&
+            questionLines[questionLines.length - 1]?.trim() === blockConfig.endMarker
+        ) {
+            const lineIdx = findLineIndexOfSearchStringIgnoringWs(questionLines, blockConfig.separator);
+            side1 = questionLines.slice(1, lineIdx).join("\n");
+            side2 = questionLines.slice(lineIdx + 1, -1).join("\n");
+        } else {
+            const lineIdx = findLineIndexOfSearchStringIgnoringWs(
+                questionLines,
+                settings.multilineCardSeparator,
+            );
+            side1 = questionLines.slice(0, lineIdx).join("\n");
+            side2 = questionLines.slice(lineIdx + 1).join("\n");
+        }
 
         const result: CardFrontBack[] = [new CardFrontBack(side1, side2)];
         return result;
