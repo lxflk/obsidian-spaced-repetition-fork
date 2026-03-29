@@ -8,6 +8,7 @@ import {
     IFlashcardReviewSequencer as IFlashcardReviewSequencer,
 } from "src/card/flashcard-review-sequencer";
 import { CardType, Question } from "src/card/questions/question";
+import { findMatchingQuestion } from "src/card/questions/question-matcher";
 import { Deck } from "src/deck/deck";
 import { escapeHtml } from "src/escape-html";
 import type SRPlugin from "src/main";
@@ -315,18 +316,19 @@ export class CardContainer {
         const currentQuestion = this.reviewSequencer.currentQuestion;
         if (!currentQuestion) return;
 
+        const refreshedQuestion = await this._loadLatestQuestionLocation(currentQuestion);
         const isMobile = Platform.isMobile || EmulatedPlatform().isMobile;
         const isModalReview =
             (!isMobile && !this.settings.openViewInNewTab) ||
             (isMobile && !this.settings.openViewInNewTabMobile);
 
         const file = currentQuestion.note.file.tfile;
-        const line = Math.max(0, currentQuestion.lineNo ?? 0);
+        const line = Math.max(0, refreshedQuestion?.lineNo ?? currentQuestion.lineNo ?? 0);
         const leaf = isMobile
             ? this.app.workspace.getLeaf("tab")
             : getOrCreateSideBySideLeaf(this.app, this.sourceLeaf);
 
-        await openMarkdownFileInLeaf(leaf, file, line);
+        await openMarkdownFileInLeaf(leaf, file, line, true);
         await leaf.loadIfDeferred();
         await this.app.workspace.revealLeaf(leaf);
 
@@ -361,10 +363,7 @@ export class CardContainer {
             }
 
             const refreshedNote = await this.plugin.loadNote(file);
-            const refreshedQuestion = this._findMatchingQuestion(
-                refreshedNote.questionList,
-                currentQuestion,
-            );
+            const refreshedQuestion = findMatchingQuestion(refreshedNote.questionList, currentQuestion);
             const refreshedCard = refreshedQuestion?.cards[currentCard.cardIdx];
 
             if (!refreshedQuestion || !refreshedCard) {
@@ -388,19 +387,14 @@ export class CardContainer {
         }
     }
 
-    private _findMatchingQuestion(questionList: Question[], currentQuestion: Question): Question | null {
-        const currentBlockId = currentQuestion.questionText.obsidianBlockId;
+    private async _loadLatestQuestionLocation(currentQuestion: Question): Promise<Question | null> {
+        const file = currentQuestion.note?.file?.tfile;
+        if (!file) {
+            return null;
+        }
 
-        return (
-            questionList.find(
-                (question) =>
-                    currentBlockId &&
-                    question.questionText.obsidianBlockId &&
-                    question.questionText.obsidianBlockId === currentBlockId,
-            ) ??
-            questionList.find((question) => question.lineNo === currentQuestion.lineNo) ??
-            null
-        );
+        const refreshedNote = await this.plugin.loadNote(file);
+        return findMatchingQuestion(refreshedNote.questionList, currentQuestion);
     }
 
     private _applyRefreshedCurrentCard(

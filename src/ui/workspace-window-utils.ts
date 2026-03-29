@@ -41,6 +41,7 @@ export async function openMarkdownFileInLeaf(
     leaf: WorkspaceLeaf,
     file: TFile,
     line?: number,
+    forceSourceMode: boolean = false,
 ): Promise<void> {
     const currentViewState = leaf.getViewState();
     const nextViewState: ViewState = {
@@ -51,7 +52,7 @@ export async function openMarkdownFileInLeaf(
         },
     };
 
-    const mode = getMarkdownViewMode(currentViewState);
+    const mode = forceSourceMode ? "source" : getMarkdownViewMode(currentViewState);
     if (mode) {
         nextViewState.state = {
             ...nextViewState.state,
