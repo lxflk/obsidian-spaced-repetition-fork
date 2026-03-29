@@ -116,7 +116,6 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     private dueDateFlashcardHistogram: DueDateHistogram;
     private currentTopicPath: TopicPath;
     private deferredQuestions: DeferredQuestion[];
-    private deferredQuestionHistory: DeferredQuestion[];
 
     constructor(
         reviewMode: FlashcardReviewMode,
@@ -134,7 +133,6 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         this.dueDateFlashcardHistogram = dueDateFlashcardHistogram;
         this.currentTopicPath = TopicPath.emptyPath;
         this.deferredQuestions = [];
-        this.deferredQuestionHistory = [];
     }
 
     get hasCurrentCard(): boolean {
@@ -167,7 +165,6 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         this.remainingDeckTree = remainingDeckTree;
         this.skippedDeckTree = originalDeckTree.copyWithCardFilter(() => false);
         this.deferredQuestions = [];
-        this.deferredQuestionHistory = [];
         this.setCurrentDeck(TopicPath.emptyPath);
     }
 
@@ -251,22 +248,10 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     skipCurrentCard(): void {
         const currentQuestion = this.currentQuestion;
         const currentDeckPath = this.currentTopicPath.clone();
-        const hadDeferredQuestionForCurrentDeck =
-            this.hasDeferredQuestionForDeck(currentDeckPath);
-        const shouldDeferQuestion = !this.hasQuestionBeenDeferred(
-            currentQuestion,
-            currentDeckPath,
-        );
 
         this.cardSequencer.deleteCurrentQuestionFromAllDecks();
-
-        if (shouldDeferQuestion) {
-            this.deferQuestion(currentQuestion, currentDeckPath);
-        }
-
-        if (hadDeferredQuestionForCurrentDeck) {
-            this.restoreDeferredQuestionForCurrentDeckIfRequired();
-        }
+        this.deferQuestion(currentQuestion, currentDeckPath);
+        this.restoreDeferredQuestionForCurrentDeckIfRequired();
     }
 
     private deleteCurrentCard(): void {
@@ -407,7 +392,6 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
 
         this.appendQuestionToDeckTree(this.skippedDeckTree, question);
         this.deferredQuestions.push(deferredQuestion);
-        this.deferredQuestionHistory.push(deferredQuestion);
     }
 
     private restoreDeferredQuestionForCurrentDeckIfRequired(): void {
@@ -433,20 +417,6 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         for (const card of question.cards) {
             deckTree.appendCard(question.topicPathList, card);
         }
-    }
-
-    private hasDeferredQuestionForDeck(deckTopicPath: TopicPath): boolean {
-        return this.deferredQuestions.some((item) =>
-            FlashcardReviewSequencer.areTopicPathsEqual(item.deckTopicPath, deckTopicPath),
-        );
-    }
-
-    private hasQuestionBeenDeferred(question: Question, deckTopicPath: TopicPath): boolean {
-        return this.deferredQuestionHistory.some(
-            (item) =>
-                item.question === question &&
-                FlashcardReviewSequencer.areTopicPathsEqual(item.deckTopicPath, deckTopicPath),
-        );
     }
 
     private static areTopicPathsEqual(left: TopicPath, right: TopicPath): boolean {

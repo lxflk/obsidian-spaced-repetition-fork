@@ -329,7 +329,7 @@ describe("skipCurrentCard", () => {
         skipThenCheckCardFront(c.reviewSequencer, "Q3");
     });
 
-    test("Skip repeatedly until no more", async () => {
+    test("Skip repeatedly keeps cycling cards to the back of the queue", async () => {
         const c: TestContext = await setupSample1(FlashcardReviewMode.Review, DEFAULT_SETTINGS);
         expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
 
@@ -348,8 +348,7 @@ describe("skipCurrentCard", () => {
         skipThenCheckCardFront(c.reviewSequencer, "Q4");
         skipThenCheckCardFront(c.reviewSequencer, "Q5");
         skipThenCheckCardFront(c.reviewSequencer, "Q6");
-
-        skipAndCheckNoRemainingCards(c);
+        skipThenCheckCardFront(c.reviewSequencer, "Q2");
     });
 
     test("Skipping a card skips all sibling cards", async () => {
@@ -407,10 +406,10 @@ describe("skipCurrentCard", () => {
         expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(3);
 
         c.reviewSequencer.skipCurrentCard();
-        expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
     });
 
-    test("Skipping the only card ends the current pass, but it is still available when reopening that deck", async () => {
+    test("Skipping the only card in a deck keeps it available without reopening that deck", async () => {
         const text: string = `
 #flashcards/science Q1::A1
 #flashcards/math Q2::A2`;
@@ -427,7 +426,7 @@ describe("skipCurrentCard", () => {
         expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
 
         c.reviewSequencer.skipCurrentCard();
-        expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
 
         c.reviewSequencer.setCurrentDeck(TopicPath.getTopicPathFromTag("#flashcards/math"));
         expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
@@ -623,7 +622,7 @@ Q1::A1
                 await c.reviewSequencer.processReview(ReviewResponse.Hard);
                 expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
 
-                skipAndCheckNoRemainingCards(c);
+                skipThenCheckCardFront(c.reviewSequencer, "Q1");
                 checkQuestionPostponementListCount(c, 0);
             });
         });
@@ -657,7 +656,7 @@ Q1::A1
                 await c.reviewSequencer.processReview(ReviewResponse.Easy);
                 expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
 
-                skipAndCheckNoRemainingCards(c);
+                skipThenCheckCardFront(c.reviewSequencer, "Q1");
 
                 // Single question on the list ()
                 checkQuestionPostponementListCount(c, 1);
@@ -823,8 +822,7 @@ ${indent}- bar?::baz
                 skipThenCheckCardFront(c.reviewSequencer, "Q2");
                 skipThenCheckCardFront(c.reviewSequencer, "Q3");
                 skipThenCheckCardFront(c.reviewSequencer, "Q4");
-
-                skipAndCheckNoRemainingCards(c);
+                skipThenCheckCardFront(c.reviewSequencer, "Q2");
             });
         });
 
@@ -840,8 +838,7 @@ ${indent}- bar?::baz
                 skipThenCheckCardFront(c.reviewSequencer, "Q3");
                 skipThenCheckCardFront(c.reviewSequencer, "Q4");
                 skipThenCheckCardFront(c.reviewSequencer, "Q1");
-
-                skipAndCheckNoRemainingCards(c);
+                skipThenCheckCardFront(c.reviewSequencer, "Q2");
             });
         });
     });
@@ -1228,11 +1225,6 @@ ${updatedStr}
 
 function checkQuestionPostponementListCount(c: TestContext, expectedListLength: number) {
     expect(c.questionPostponementList.list.length).toEqual(expectedListLength);
-}
-
-function skipAndCheckNoRemainingCards(c: TestContext) {
-    c.reviewSequencer.skipCurrentCard();
-    expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
 }
 
 async function checkUpdateCurrentQuestionText(
