@@ -95,12 +95,18 @@ export enum FlashcardReviewMode {
     Review,
 }
 
+interface DeferredQuestion {
+    question: Question;
+    deckTopicPath: TopicPath;
+}
+
 export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     // We need the original deck tree so that we can still provide the total cards in each deck
     private _originalDeckTree: Deck;
 
     // This is set by the caller, and must have the same deck hierarchy as originalDeckTree.
     private remainingDeckTree: Deck;
+    private skippedDeckTree: Deck;
 
     private reviewMode: FlashcardReviewMode;
     private cardSequencer: IDeckTreeIterator;
@@ -108,6 +114,9 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     private srsAlgorithm: ISrsAlgorithm;
     private questionPostponementList: IQuestionPostponementList;
     private dueDateFlashcardHistogram: DueDateHistogram;
+    private currentTopicPath: TopicPath;
+    private deferredQuestions: DeferredQuestion[];
+    private deferredQuestionHistory: DeferredQuestion[];
 
     constructor(
         reviewMode: FlashcardReviewMode,
@@ -123,6 +132,9 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         this.srsAlgorithm = srsAlgorithm;
         this.questionPostponementList = questionPostponementList;
         this.dueDateFlashcardHistogram = dueDateFlashcardHistogram;
+        this.currentTopicPath = TopicPath.emptyPath;
+        this.deferredQuestions = [];
+        this.deferredQuestionHistory = [];
     }
 
     get hasCurrentCard(): boolean {
@@ -153,12 +165,17 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         this.cardSequencer.setBaseDeck(remainingDeckTree);
         this._originalDeckTree = originalDeckTree;
         this.remainingDeckTree = remainingDeckTree;
+        this.skippedDeckTree = originalDeckTree.copyWithCardFilter(() => false);
+        this.deferredQuestions = [];
+        this.deferredQuestionHistory = [];
         this.setCurrentDeck(TopicPath.emptyPath);
     }
 
     setCurrentDeck(topicPath: TopicPath): void {
+        this.currentTopicPath = topicPath.clone();
         this.cardSequencer.setIteratorTopicPath(topicPath);
         this.cardSequencer.nextCard();
+        this.restoreDeferredQuestionForCurrentDeckIfRequired();
     }
 
     get originalDeckTree(): Deck {
@@ -169,24 +186,26 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         const totalCount: number = this._originalDeckTree
             .getDeck(topicPath)
             .getDistinctCardCount(CardListType.All, true);
-        const remainingDeck: Deck = this.remainingDeckTree.getDeck(topicPath);
-        const newCount: number = remainingDeck.getDistinctCardCount(CardListType.NewCard, true);
-        const dueCount: number = remainingDeck.getDistinctCardCount(CardListType.DueCard, true);
+        const newCount: number = this.getQueuedCardCount(topicPath, CardListType.NewCard, true);
+        const dueCount: number = this.getQueuedCardCount(topicPath, CardListType.DueCard, true);
 
         // Sry for the long variable names, but I needed all these distinct counts in the UI
-        const newCardsInQueueOfThisDeckCount = remainingDeck.getDistinctCardCount(
+        const newCardsInQueueOfThisDeckCount = this.getQueuedCardCount(
+            topicPath,
             CardListType.NewCard,
             false,
         );
-        const dueCardsInQueueOfThisDeckCount = remainingDeck.getDistinctCardCount(
+        const dueCardsInQueueOfThisDeckCount = this.getQueuedCardCount(
+            topicPath,
             CardListType.DueCard,
             false,
         );
         const cardsInQueueOfThisDeckCount =
             newCardsInQueueOfThisDeckCount + dueCardsInQueueOfThisDeckCount;
 
-        const subDecksInQueueOfThisDeckCount =
-            this.getSubDecksWithCardsInQueue(remainingDeck).length;
+        const subDecksInQueueOfThisDeckCount = this.getSubDecksWithCardsInQueue(
+            this._originalDeckTree.getDeck(topicPath),
+        ).length;
         const decksInQueueOfThisDeckCount =
             cardsInQueueOfThisDeckCount > 0
                 ? subDecksInQueueOfThisDeckCount + 1
@@ -213,8 +232,16 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
                 this.getSubDecksWithCardsInQueue(subDeck),
             );
 
-            const newCount: number = subDeck.getDistinctCardCount(CardListType.NewCard, false);
-            const dueCount: number = subDeck.getDistinctCardCount(CardListType.DueCard, false);
+            const newCount: number = this.getQueuedCardCount(
+                subDeck.getTopicPath(),
+                CardListType.NewCard,
+                false,
+            );
+            const dueCount: number = this.getQueuedCardCount(
+                subDeck.getTopicPath(),
+                CardListType.DueCard,
+                false,
+            );
             if (newCount + dueCount > 0) subDecksWithCardsInQueue.push(subDeck);
         });
 
@@ -222,7 +249,24 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
     }
 
     skipCurrentCard(): void {
+        const currentQuestion = this.currentQuestion;
+        const currentDeckPath = this.currentTopicPath.clone();
+        const hadDeferredQuestionForCurrentDeck =
+            this.hasDeferredQuestionForDeck(currentDeckPath);
+        const shouldDeferQuestion = !this.hasQuestionBeenDeferred(
+            currentQuestion,
+            currentDeckPath,
+        );
+
         this.cardSequencer.deleteCurrentQuestionFromAllDecks();
+
+        if (shouldDeferQuestion) {
+            this.deferQuestion(currentQuestion, currentDeckPath);
+        }
+
+        if (hadDeferredQuestionForCurrentDeck) {
+            this.restoreDeferredQuestionForCurrentDeckIfRequired();
+        }
     }
 
     private deleteCurrentCard(): void {
@@ -239,6 +283,8 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
                 await this.processReviewCramMode(response);
                 break;
         }
+
+        this.restoreDeferredQuestionForCurrentDeckIfRequired();
     }
 
     async processReviewReviewMode(response: ReviewResponse): Promise<void> {
@@ -337,5 +383,77 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         q.actualQuestion = text;
 
         await DataStore.getInstance().questionWrite(this.currentQuestion);
+    }
+
+    private getQueuedCardCount(
+        topicPath: TopicPath,
+        cardListType: CardListType,
+        includeSubdeckCounts: boolean,
+    ): number {
+        const remainingDeck = this.remainingDeckTree.getDeck(topicPath);
+        const skippedDeck = this.skippedDeckTree.getDeck(topicPath);
+
+        return (
+            remainingDeck.getDistinctCardCount(cardListType, includeSubdeckCounts) +
+            skippedDeck.getDistinctCardCount(cardListType, includeSubdeckCounts)
+        );
+    }
+
+    private deferQuestion(question: Question, deckTopicPath: TopicPath): void {
+        const deferredQuestion: DeferredQuestion = {
+            question,
+            deckTopicPath,
+        };
+
+        this.appendQuestionToDeckTree(this.skippedDeckTree, question);
+        this.deferredQuestions.push(deferredQuestion);
+        this.deferredQuestionHistory.push(deferredQuestion);
+    }
+
+    private restoreDeferredQuestionForCurrentDeckIfRequired(): void {
+        if (this.hasCurrentCard) {
+            return;
+        }
+
+        const deferredQuestionIdx = this.deferredQuestions.findIndex((item) =>
+            FlashcardReviewSequencer.areTopicPathsEqual(item.deckTopicPath, this.currentTopicPath),
+        );
+        if (deferredQuestionIdx === -1) {
+            return;
+        }
+
+        const [deferredQuestion] = this.deferredQuestions.splice(deferredQuestionIdx, 1);
+        this.skippedDeckTree.deleteQuestionFromAllDecks(deferredQuestion.question, false);
+        this.appendQuestionToDeckTree(this.remainingDeckTree, deferredQuestion.question);
+        this.cardSequencer.setIteratorTopicPath(this.currentTopicPath);
+        this.cardSequencer.nextCard();
+    }
+
+    private appendQuestionToDeckTree(deckTree: Deck, question: Question): void {
+        for (const card of question.cards) {
+            deckTree.appendCard(question.topicPathList, card);
+        }
+    }
+
+    private hasDeferredQuestionForDeck(deckTopicPath: TopicPath): boolean {
+        return this.deferredQuestions.some((item) =>
+            FlashcardReviewSequencer.areTopicPathsEqual(item.deckTopicPath, deckTopicPath),
+        );
+    }
+
+    private hasQuestionBeenDeferred(question: Question, deckTopicPath: TopicPath): boolean {
+        return this.deferredQuestionHistory.some(
+            (item) =>
+                item.question === question &&
+                FlashcardReviewSequencer.areTopicPathsEqual(item.deckTopicPath, deckTopicPath),
+        );
+    }
+
+    private static areTopicPathsEqual(left: TopicPath, right: TopicPath): boolean {
+        if (left.path.length !== right.path.length) {
+            return false;
+        }
+
+        return left.path.every((pathPart, idx) => pathPart === right.path[idx]);
     }
 }

@@ -341,6 +341,14 @@ describe("skipCurrentCard", () => {
         skipThenCheckCardFront(c.reviewSequencer, "Q5");
         skipThenCheckCardFront(c.reviewSequencer, "Q6");
 
+        // Skipped cards reappear once at the end of the current session order
+        skipThenCheckCardFront(c.reviewSequencer, "Q2");
+        skipThenCheckCardFront(c.reviewSequencer, "Q1");
+        skipThenCheckCardFront(c.reviewSequencer, "Q3");
+        skipThenCheckCardFront(c.reviewSequencer, "Q4");
+        skipThenCheckCardFront(c.reviewSequencer, "Q5");
+        skipThenCheckCardFront(c.reviewSequencer, "Q6");
+
         skipAndCheckNoRemainingCards(c);
     });
 
@@ -381,9 +389,51 @@ describe("skipCurrentCard", () => {
         expect(c.reviewSequencer.currentQuestion.cards[0].front).toMatch(/This single/);
         expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(3);
 
-        // Skip over the cloze, skips all 3 cards, no cards left
+        // Skip over the cloze; once the initial pass is exhausted, skipped questions return in order
+        c.reviewSequencer.skipCurrentCard();
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
+        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(1);
+
+        c.reviewSequencer.skipCurrentCard();
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
+        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(2);
+
+        c.reviewSequencer.skipCurrentCard();
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q3");
+        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(1);
+
+        c.reviewSequencer.skipCurrentCard();
+        expect(c.reviewSequencer.currentQuestion.cards[0].front).toMatch(/This single/);
+        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(3);
+
         c.reviewSequencer.skipCurrentCard();
         expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
+    });
+
+    test("Skipping the only card ends the current pass, but it is still available when reopening that deck", async () => {
+        const text: string = `
+#flashcards/science Q1::A1
+#flashcards/math Q2::A2`;
+
+        const c: TestContext = TestContext.Create(
+            orderDueFirstSequential,
+            FlashcardReviewMode.Review,
+            DEFAULT_SETTINGS,
+            text,
+        );
+        await c.setSequencerDeckTreeFromOriginalText();
+
+        c.reviewSequencer.setCurrentDeck(TopicPath.getTopicPathFromTag("#flashcards/science"));
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
+
+        c.reviewSequencer.skipCurrentCard();
+        expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
+
+        c.reviewSequencer.setCurrentDeck(TopicPath.getTopicPathFromTag("#flashcards/math"));
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
+
+        c.reviewSequencer.setCurrentDeck(TopicPath.getTopicPathFromTag("#flashcards/science"));
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
     });
 
     describe("Checking postponement list (skipped cards)", () => {
@@ -770,9 +820,11 @@ ${indent}- bar?::baz
                 expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
                 skipThenCheckCardFront(c.reviewSequencer, "Q3");
                 skipThenCheckCardFront(c.reviewSequencer, "Q4");
+                skipThenCheckCardFront(c.reviewSequencer, "Q2");
+                skipThenCheckCardFront(c.reviewSequencer, "Q3");
+                skipThenCheckCardFront(c.reviewSequencer, "Q4");
 
-                c.reviewSequencer.skipCurrentCard();
-                expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
+                skipAndCheckNoRemainingCards(c);
             });
         });
 
@@ -784,9 +836,12 @@ ${indent}- bar?::baz
                 skipThenCheckCardFront(c.reviewSequencer, "Q3");
                 skipThenCheckCardFront(c.reviewSequencer, "Q4");
                 skipThenCheckCardFront(c.reviewSequencer, "Q1");
+                skipThenCheckCardFront(c.reviewSequencer, "Q2");
+                skipThenCheckCardFront(c.reviewSequencer, "Q3");
+                skipThenCheckCardFront(c.reviewSequencer, "Q4");
+                skipThenCheckCardFront(c.reviewSequencer, "Q1");
 
-                c.reviewSequencer.skipCurrentCard();
-                expect(c.reviewSequencer.hasCurrentCard).toEqual(false);
+                skipAndCheckNoRemainingCards(c);
             });
         });
     });
@@ -1075,7 +1130,7 @@ Q4::A4 <!--SR:!2023-01-21,15,290-->
             expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(4, 1, 3, 4, 1, 3, 4, 0, 1));
         });
 
-        test("Reduction in due count after skipping card", async () => {
+        test("Skipped cards remain in the session counts until they are seen again", async () => {
             const text: string = `#flashcards
 Q1::A1
 Q2::A2
@@ -1093,8 +1148,8 @@ Q4::A4 <!--SR:!2023-01-21,15,290-->
             expect(c.reviewSequencer.currentCard.front).toEqual("Q4"); // This is the first card as we are using orderDueFirstSequential
             expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(4, 1, 3, 4, 1, 3, 4, 0, 1));
             c.reviewSequencer.skipCurrentCard();
-            // One less due card
-            expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(4, 0, 3, 3, 0, 3, 3, 0, 1));
+            expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
+            expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(4, 1, 3, 4, 1, 3, 4, 0, 1));
         });
 
         test("Change in stats after reviewing each card", async () => {
