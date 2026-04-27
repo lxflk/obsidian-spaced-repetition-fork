@@ -62,6 +62,11 @@ export interface SRSettings {
     maximumInterval: number;
     maxLinkFactor: number;
     startOfDay: string;
+    linearHardIntervalFactor: number;
+    linearHardDelayFactor: number;
+    linearMinimumHardInterval: number;
+    linearGoodMultiplier: number;
+    linearEasyMultiplier: number;
 
     // storage
     dataStore: string;
@@ -131,6 +136,11 @@ export const DEFAULT_SETTINGS: SRSettings = {
     maximumInterval: 36525,
     maxLinkFactor: 1.0,
     startOfDay: "00:00:00",
+    linearHardIntervalFactor: 0.5,
+    linearHardDelayFactor: 0.25,
+    linearMinimumHardInterval: 1,
+    linearGoodMultiplier: 2,
+    linearEasyMultiplier: 2,
 
     // storage
     dataStore: DataStoreName.NOTES,
@@ -170,7 +180,10 @@ export function upgradeSettings(settings: SRSettings) {
             settings.clozePatterns.push("{{[123;;]answer[;;hint]}}");
     }
 
-    if (settings.multilineCardStartMarker === null || settings.multilineCardStartMarker === undefined) {
+    if (
+        settings.multilineCardStartMarker === null ||
+        settings.multilineCardStartMarker === undefined
+    ) {
         settings.multilineCardStartMarker = DEFAULT_SETTINGS.multilineCardStartMarker;
     }
 

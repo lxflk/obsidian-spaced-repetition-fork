@@ -173,6 +173,7 @@ const en: IBaseLocale = {
     CHECK_ALGORITHM_WIKI:
         'For more information, check the <a href="${algoUrl}">algorithm details</a>.',
     SM2_OSR_VARIANT: "OSR's variant of SM-2",
+    LINEAR_ALGORITHM: "Linear multiplier scheduler",
     BASE_EASE: "Base ease",
     BASE_EASE_DESC: "minimum = 130, preferrably approximately 250.",
     BASE_EASE_MIN_WARNING: "The base ease must be at least 130.",
@@ -272,6 +273,22 @@ const en: IBaseLocale = {
     START_OF_DAY: "Start of day",
     START_OF_DAY_DESC: "The time at which the day begins (Format: HH:MM:SS, Default: 00:00:00)",
     INVALID_START_OF_DAY_WARNING: "Invalid format for start of day",
+    LINEAR_SETTINGS: "Linear algorithm settings",
+    LINEAR_SETTINGS_DESC:
+        "Hard sets the baseline interval. Good and Easy are configurable linear multiples of that baseline.",
+    LINEAR_HARD_INTERVAL_FACTOR: "Hard baseline interval factor",
+    LINEAR_HARD_INTERVAL_FACTOR_DESC:
+        "Hard baseline = (current interval + overdue days * delay factor) * interval factor.",
+    LINEAR_HARD_DELAY_FACTOR: "Hard baseline overdue-day factor",
+    LINEAR_HARD_DELAY_FACTOR_DESC:
+        "Controls how much overdue days contribute to the Hard baseline interval.",
+    LINEAR_MINIMUM_HARD_INTERVAL: "Minimum hard interval in days",
+    LINEAR_MINIMUM_HARD_INTERVAL_DESC:
+        "Lower bound for the Hard baseline before Good/Easy multipliers are applied.",
+    LINEAR_GOOD_MULTIPLIER: "Good multiplier over Hard",
+    LINEAR_GOOD_MULTIPLIER_DESC: "Good interval = Hard baseline * this multiplier.",
+    LINEAR_EASY_MULTIPLIER: "Easy multiplier over Good",
+    LINEAR_EASY_MULTIPLIER_DESC: "Easy interval = Good interval * this multiplier.",
 
     // Settings > Scheduling > Delete
     DELETE_SCHEDULING_DATA_IN_NOTES: "Delete Scheduling Data in Notes",

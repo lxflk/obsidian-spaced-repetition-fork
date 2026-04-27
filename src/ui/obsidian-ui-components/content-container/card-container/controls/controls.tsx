@@ -44,20 +44,17 @@ export default class ControlsComponent {
 
         this.controls.createDiv().addClass("sr-flex-spacer");
 
-        this.jumpToCardButton = new SRButtonComponent(
-            this.controls,
-            {
-                classNames: [
-                    "sr-edit-button",
-                    ...(EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : []),
-                ],
-                icon: "arrow-up-right",
-                tooltip: jumpToCardTitle,
-                onClick: () => {
-                    jumpToCurrentCard();
-                },
+        this.jumpToCardButton = new SRButtonComponent(this.controls, {
+            classNames: [
+                "sr-edit-button",
+                ...(EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : []),
+            ],
+            icon: "arrow-up-right",
+            tooltip: jumpToCardTitle,
+            onClick: () => {
+                jumpToCurrentCard();
             },
-        );
+        });
 
         this.menuDotsButton = new MenuDotsButtonComponent(
             this.controls,

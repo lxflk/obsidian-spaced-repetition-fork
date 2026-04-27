@@ -70,7 +70,10 @@ class QuestionTypeMultiLineBasic implements IQuestionTypeHandler {
             questionLines[0]?.trim() === blockConfig.startMarker &&
             questionLines[questionLines.length - 1]?.trim() === blockConfig.endMarker
         ) {
-            const lineIdx = findLineIndexOfSearchStringIgnoringWs(questionLines, blockConfig.separator);
+            const lineIdx = findLineIndexOfSearchStringIgnoringWs(
+                questionLines,
+                blockConfig.separator,
+            );
             side1 = questionLines.slice(1, lineIdx).join("\n");
             side2 = questionLines.slice(lineIdx + 1, -1).join("\n");
         } else {

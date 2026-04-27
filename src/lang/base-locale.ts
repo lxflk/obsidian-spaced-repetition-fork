@@ -144,6 +144,7 @@ export interface IBaseLocale {
     ALGORITHM: string;
     CHECK_ALGORITHM_WIKI: string;
     SM2_OSR_VARIANT: string;
+    LINEAR_ALGORITHM: string;
     BASE_EASE: string;
     BASE_EASE_DESC: string;
     BASE_EASE_MIN_WARNING: string;
@@ -235,6 +236,18 @@ export interface IBaseLocale {
     START_OF_DAY: string;
     START_OF_DAY_DESC: string;
     INVALID_START_OF_DAY_WARNING: string;
+    LINEAR_SETTINGS: string;
+    LINEAR_SETTINGS_DESC: string;
+    LINEAR_HARD_INTERVAL_FACTOR: string;
+    LINEAR_HARD_INTERVAL_FACTOR_DESC: string;
+    LINEAR_HARD_DELAY_FACTOR: string;
+    LINEAR_HARD_DELAY_FACTOR_DESC: string;
+    LINEAR_MINIMUM_HARD_INTERVAL: string;
+    LINEAR_MINIMUM_HARD_INTERVAL_DESC: string;
+    LINEAR_GOOD_MULTIPLIER: string;
+    LINEAR_GOOD_MULTIPLIER_DESC: string;
+    LINEAR_EASY_MULTIPLIER: string;
+    LINEAR_EASY_MULTIPLIER_DESC: string;
 
     // Settings > Scheduling > Delete
     DELETE_SCHEDULING_DATA_IN_NOTES: string;

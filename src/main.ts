@@ -1,9 +1,9 @@
 import { Notice, Plugin, TFile } from "obsidian";
 
+import { createSrsAlgorithm } from "src/algorithms/base/create-srs-algorithm";
 import { ReviewResponse } from "src/algorithms/base/repetition-item";
 import { SrsAlgorithm } from "src/algorithms/base/srs-algorithm";
 import { ObsidianVaultNoteLinkInfoFinder } from "src/algorithms/osr/obsidian-vault-notelink-info-finder";
-import { SrsAlgorithmOsr } from "src/algorithms/osr/srs-algorithm-osr";
 import {
     FlashcardReviewMode,
     FlashcardReviewSequencer,
@@ -326,7 +326,7 @@ export default class SRPlugin extends Plugin {
     setupDataStoreAndAlgorithmInstances(settings: SRSettings) {
         // For now we can hardcode as we only support the one data store and one algorithm
         DataStore.instance = new StoreInNotes(settings);
-        SrsAlgorithm.instance = new SrsAlgorithmOsr(settings);
+        SrsAlgorithm.instance = createSrsAlgorithm(settings);
         DataStoreAlgorithm.instance = new DataStoreInNoteAlgorithmOsr(settings);
     }
     async savePluginData(): Promise<void> {

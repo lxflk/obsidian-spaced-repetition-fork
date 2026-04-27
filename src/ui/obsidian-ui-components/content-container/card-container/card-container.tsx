@@ -19,10 +19,7 @@ import ControlsComponent from "src/ui/obsidian-ui-components/content-container/c
 import InfoSection from "src/ui/obsidian-ui-components/content-container/card-container/deck-info/info-section";
 import ResponseSectionComponent from "src/ui/obsidian-ui-components/content-container/card-container/response-section/response-section";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
-import {
-    getOrCreateSideBySideLeaf,
-    openMarkdownFileInLeaf,
-} from "src/ui/workspace-window-utils";
+import { getOrCreateSideBySideLeaf, openMarkdownFileInLeaf } from "src/ui/workspace-window-utils";
 import EmulatedPlatform from "src/utils/platform-detector";
 import { RenderMarkdownWrapper } from "src/utils/renderers";
 
@@ -363,7 +360,10 @@ export class CardContainer {
             }
 
             const refreshedNote = await this.plugin.loadNote(file);
-            const refreshedQuestion = findMatchingQuestion(refreshedNote.questionList, currentQuestion);
+            const refreshedQuestion = findMatchingQuestion(
+                refreshedNote.questionList,
+                currentQuestion,
+            );
             const refreshedCard = refreshedQuestion?.cards[currentCard.cardIdx];
 
             if (!refreshedQuestion || !refreshedCard) {

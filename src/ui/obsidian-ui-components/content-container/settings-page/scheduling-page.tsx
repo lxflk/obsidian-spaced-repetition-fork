@@ -1,5 +1,6 @@
 import { Notice, Setting, SettingGroup } from "obsidian";
 
+import { Algorithm } from "src/algorithms/base/isrs-algorithm";
 import {
     deleteAllSchedulingData,
     deleteAllSchedulingDataInCards,
@@ -39,8 +40,10 @@ export class SchedulingPage extends SettingsPage {
             scrollListener,
         );
 
-        new SettingGroup(this.containerEl)
-            .setHeading(t("ALGORITHM"))
+        const isLinearAlgorithm = this.plugin.data.settings.algorithm === Algorithm.LINEAR;
+        const algorithmGroup = new SettingGroup(this.containerEl).setHeading(t("ALGORITHM"));
+
+        algorithmGroup
             .addSetting((setting: Setting) => {
                 const algoSettingEl = setting
                     .setName(t("ALGORITHM"))
@@ -48,12 +51,17 @@ export class SchedulingPage extends SettingsPage {
                     .addDropdown((dropdown) =>
                         dropdown
                             .addOptions({
-                                "SM-2-OSR": t("SM2_OSR_VARIANT"),
+                                [Algorithm.SM_2_OSR]: t("SM2_OSR_VARIANT"),
+                                [Algorithm.LINEAR]: t("LINEAR_ALGORITHM"),
                             })
                             .setValue(this.plugin.data.settings.algorithm)
                             .onChange(async (value) => {
                                 this.plugin.data.settings.algorithm = value;
+                                this.plugin.setupDataStoreAndAlgorithmInstances(
+                                    this.plugin.data.settings,
+                                );
                                 await this.plugin.savePluginData();
+                                this.display();
                             }),
                     );
 
@@ -102,75 +110,268 @@ export class SchedulingPage extends SettingsPage {
                                 });
                             }),
                     );
-            })
-            .addSetting((setting: Setting) => {
+            });
+
+        if (isLinearAlgorithm) {
+            algorithmGroup.addSetting((setting: Setting) => {
+                setting.setName(t("LINEAR_SETTINGS")).setDesc(t("LINEAR_SETTINGS_DESC"));
+            });
+
+            algorithmGroup.addSetting((setting: Setting) => {
                 setting
-                    .setName(t("LAPSE_INTERVAL_CHANGE"))
-                    .setDesc(t("LAPSE_INTERVAL_CHANGE_DESC"))
+                    .setName(t("LINEAR_HARD_INTERVAL_FACTOR"))
+                    .setDesc(t("LINEAR_HARD_INTERVAL_FACTOR_DESC"))
                     .addExtraButton((button) => {
                         button
                             .setIcon("reset")
                             .setTooltip(t("RESET_DEFAULT"))
                             .onClick(async () => {
-                                this.plugin.data.settings.lapsesIntervalChange =
-                                    DEFAULT_SETTINGS.lapsesIntervalChange;
+                                this.plugin.data.settings.linearHardIntervalFactor =
+                                    DEFAULT_SETTINGS.linearHardIntervalFactor;
                                 await this.plugin.savePluginData();
-
-                                this.display();
-                            });
-                    })
-                    .addSlider((slider) =>
-                        slider
-                            .setLimits(1, 99, 1)
-                            .setValue(this.plugin.data.settings.lapsesIntervalChange * 100)
-                            .setDynamicTooltip()
-                            .onChange(async (value: number) => {
-                                this.plugin.data.settings.lapsesIntervalChange = value / 100;
-                                await this.plugin.savePluginData();
-                            }),
-                    );
-            })
-            .addSetting((setting: Setting) => {
-                setting
-                    .setName(t("EASY_BONUS"))
-                    .setDesc(t("EASY_BONUS_DESC"))
-                    .addExtraButton((button) => {
-                        button
-                            .setIcon("reset")
-                            .setTooltip(t("RESET_DEFAULT"))
-                            .onClick(async () => {
-                                this.plugin.data.settings.easyBonus = DEFAULT_SETTINGS.easyBonus;
-                                await this.plugin.savePluginData();
-
                                 this.display();
                             });
                     })
                     .addText((text) =>
                         text
-                            .setValue((this.plugin.data.settings.easyBonus * 100).toString())
+                            .setValue(this.plugin.data.settings.linearHardIntervalFactor.toString())
                             .onChange((value) => {
                                 applySettingsUpdate(async () => {
-                                    const numValue: number = Number.parseInt(value) / 100;
-                                    if (!isNaN(numValue)) {
-                                        if (numValue < 1.0) {
-                                            new Notice(t("EASY_BONUS_MIN_WARNING"));
-                                            text.setValue(
-                                                (
-                                                    this.plugin.data.settings.easyBonus * 100
-                                                ).toString(),
-                                            );
-                                            return;
-                                        }
-
-                                        this.plugin.data.settings.easyBonus = numValue;
-                                        await this.plugin.savePluginData();
-                                    } else {
+                                    const numValue = Number.parseFloat(value);
+                                    if (isNaN(numValue) || numValue <= 0) {
                                         new Notice(t("VALID_NUMBER_WARNING"));
+                                        text.setValue(
+                                            this.plugin.data.settings.linearHardIntervalFactor.toString(),
+                                        );
+                                        return;
                                     }
+
+                                    this.plugin.data.settings.linearHardIntervalFactor = numValue;
+                                    await this.plugin.savePluginData();
                                 });
                             }),
                     );
-            })
+            });
+
+            algorithmGroup.addSetting((setting: Setting) => {
+                setting
+                    .setName(t("LINEAR_HARD_DELAY_FACTOR"))
+                    .setDesc(t("LINEAR_HARD_DELAY_FACTOR_DESC"))
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.linearHardDelayFactor =
+                                    DEFAULT_SETTINGS.linearHardDelayFactor;
+                                await this.plugin.savePluginData();
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.plugin.data.settings.linearHardDelayFactor.toString())
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    const numValue = Number.parseFloat(value);
+                                    if (isNaN(numValue) || numValue < 0) {
+                                        new Notice(t("VALID_NUMBER_WARNING"));
+                                        text.setValue(
+                                            this.plugin.data.settings.linearHardDelayFactor.toString(),
+                                        );
+                                        return;
+                                    }
+
+                                    this.plugin.data.settings.linearHardDelayFactor = numValue;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
+            });
+
+            algorithmGroup.addSetting((setting: Setting) => {
+                setting
+                    .setName(t("LINEAR_MINIMUM_HARD_INTERVAL"))
+                    .setDesc(t("LINEAR_MINIMUM_HARD_INTERVAL_DESC"))
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.linearMinimumHardInterval =
+                                    DEFAULT_SETTINGS.linearMinimumHardInterval;
+                                await this.plugin.savePluginData();
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(
+                                this.plugin.data.settings.linearMinimumHardInterval.toString(),
+                            )
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    const numValue = Number.parseFloat(value);
+                                    if (isNaN(numValue) || numValue < 0) {
+                                        new Notice(t("VALID_NUMBER_WARNING"));
+                                        text.setValue(
+                                            this.plugin.data.settings.linearMinimumHardInterval.toString(),
+                                        );
+                                        return;
+                                    }
+
+                                    this.plugin.data.settings.linearMinimumHardInterval = numValue;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
+            });
+
+            algorithmGroup.addSetting((setting: Setting) => {
+                setting
+                    .setName(t("LINEAR_GOOD_MULTIPLIER"))
+                    .setDesc(t("LINEAR_GOOD_MULTIPLIER_DESC"))
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.linearGoodMultiplier =
+                                    DEFAULT_SETTINGS.linearGoodMultiplier;
+                                await this.plugin.savePluginData();
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.plugin.data.settings.linearGoodMultiplier.toString())
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    const numValue = Number.parseFloat(value);
+                                    if (isNaN(numValue) || numValue < 1) {
+                                        new Notice(t("VALID_NUMBER_WARNING"));
+                                        text.setValue(
+                                            this.plugin.data.settings.linearGoodMultiplier.toString(),
+                                        );
+                                        return;
+                                    }
+
+                                    this.plugin.data.settings.linearGoodMultiplier = numValue;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
+            });
+
+            algorithmGroup.addSetting((setting: Setting) => {
+                setting
+                    .setName(t("LINEAR_EASY_MULTIPLIER"))
+                    .setDesc(t("LINEAR_EASY_MULTIPLIER_DESC"))
+                    .addExtraButton((button) => {
+                        button
+                            .setIcon("reset")
+                            .setTooltip(t("RESET_DEFAULT"))
+                            .onClick(async () => {
+                                this.plugin.data.settings.linearEasyMultiplier =
+                                    DEFAULT_SETTINGS.linearEasyMultiplier;
+                                await this.plugin.savePluginData();
+                                this.display();
+                            });
+                    })
+                    .addText((text) =>
+                        text
+                            .setValue(this.plugin.data.settings.linearEasyMultiplier.toString())
+                            .onChange((value) => {
+                                applySettingsUpdate(async () => {
+                                    const numValue = Number.parseFloat(value);
+                                    if (isNaN(numValue) || numValue < 1) {
+                                        new Notice(t("VALID_NUMBER_WARNING"));
+                                        text.setValue(
+                                            this.plugin.data.settings.linearEasyMultiplier.toString(),
+                                        );
+                                        return;
+                                    }
+
+                                    this.plugin.data.settings.linearEasyMultiplier = numValue;
+                                    await this.plugin.savePluginData();
+                                });
+                            }),
+                    );
+            });
+        } else {
+            algorithmGroup
+                .addSetting((setting: Setting) => {
+                    setting
+                        .setName(t("LAPSE_INTERVAL_CHANGE"))
+                        .setDesc(t("LAPSE_INTERVAL_CHANGE_DESC"))
+                        .addExtraButton((button) => {
+                            button
+                                .setIcon("reset")
+                                .setTooltip(t("RESET_DEFAULT"))
+                                .onClick(async () => {
+                                    this.plugin.data.settings.lapsesIntervalChange =
+                                        DEFAULT_SETTINGS.lapsesIntervalChange;
+                                    await this.plugin.savePluginData();
+
+                                    this.display();
+                                });
+                        })
+                        .addSlider((slider) =>
+                            slider
+                                .setLimits(1, 99, 1)
+                                .setValue(this.plugin.data.settings.lapsesIntervalChange * 100)
+                                .setDynamicTooltip()
+                                .onChange(async (value: number) => {
+                                    this.plugin.data.settings.lapsesIntervalChange = value / 100;
+                                    await this.plugin.savePluginData();
+                                }),
+                        );
+                })
+                .addSetting((setting: Setting) => {
+                    setting
+                        .setName(t("EASY_BONUS"))
+                        .setDesc(t("EASY_BONUS_DESC"))
+                        .addExtraButton((button) => {
+                            button
+                                .setIcon("reset")
+                                .setTooltip(t("RESET_DEFAULT"))
+                                .onClick(async () => {
+                                    this.plugin.data.settings.easyBonus =
+                                        DEFAULT_SETTINGS.easyBonus;
+                                    await this.plugin.savePluginData();
+
+                                    this.display();
+                                });
+                        })
+                        .addText((text) =>
+                            text
+                                .setValue((this.plugin.data.settings.easyBonus * 100).toString())
+                                .onChange((value) => {
+                                    applySettingsUpdate(async () => {
+                                        const numValue: number = Number.parseInt(value) / 100;
+                                        if (!isNaN(numValue)) {
+                                            if (numValue < 1.0) {
+                                                new Notice(t("EASY_BONUS_MIN_WARNING"));
+                                                text.setValue(
+                                                    (
+                                                        this.plugin.data.settings.easyBonus * 100
+                                                    ).toString(),
+                                                );
+                                                return;
+                                            }
+
+                                            this.plugin.data.settings.easyBonus = numValue;
+                                            await this.plugin.savePluginData();
+                                        } else {
+                                            new Notice(t("VALID_NUMBER_WARNING"));
+                                        }
+                                    });
+                                }),
+                        );
+                });
+        }
+
+        algorithmGroup
             .addSetting((setting: Setting) => {
                 setting
                     .setName(t("LOAD_BALANCE"))

@@ -113,7 +113,9 @@ function lineHasScopedCardEndMarker(text: string, endMarker: string): boolean {
         return true;
     }
 
-    return text.startsWith(endMarker) && text.slice(endMarker.length).trimStart().startsWith("<!--SR:");
+    return (
+        text.startsWith(endMarker) && text.slice(endMarker.length).trimStart().startsWith("<!--SR:")
+    );
 }
 
 /**
@@ -166,7 +168,8 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
 
             if (!activeMultilineCardBlock.hasSeparator) {
                 if (currentTrimmed === multilineCardBlockConfig.separator) {
-                    activeMultilineCardBlock.hasSeparator = activeMultilineCardBlock.hasFrontContent;
+                    activeMultilineCardBlock.hasSeparator =
+                        activeMultilineCardBlock.hasFrontContent;
                 } else if (currentTrimmed.length > 0) {
                     activeMultilineCardBlock.hasFrontContent = true;
                 }

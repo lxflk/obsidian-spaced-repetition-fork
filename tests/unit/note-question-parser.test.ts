@@ -236,12 +236,7 @@ Answer line 2
         ];
 
         expect(
-            await parser.createQuestionList(
-                noteFile,
-                TextDirection.Ltr,
-                TopicPath.emptyPath,
-                true,
-            ),
+            await parser.createQuestionList(noteFile, TextDirection.Ltr, TopicPath.emptyPath, true),
         ).toMatchObject(expected);
     });
 });

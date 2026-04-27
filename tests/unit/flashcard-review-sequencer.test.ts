@@ -560,12 +560,16 @@ describe("processReview", () => {
                 );
                 await c.setSequencerDeckTreeFromOriginalText();
 
-                expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(3, 3, 0, 3, 3, 0, 3, 0, 1));
+                expect(c.getDeckStats("#flashcards")).toEqual(
+                    new DeckStats(3, 3, 0, 3, 3, 0, 3, 0, 1),
+                );
                 expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
 
                 await c.reviewSequencer.processReview(ReviewResponse.Again);
 
-                expect(c.getDeckStats("#flashcards")).toEqual(new DeckStats(3, 3, 0, 3, 3, 0, 3, 0, 1));
+                expect(c.getDeckStats("#flashcards")).toEqual(
+                    new DeckStats(3, 3, 0, 3, 3, 0, 3, 0, 1),
+                );
                 expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
 
                 skipThenCheckCardFront(c.reviewSequencer, "Q3");
