@@ -131,13 +131,13 @@ export default class StatusBarManager {
             this.statusBarItems.push(statusBarItem);
         });
 
-        if (this.plugin.manifest.version !== (await this.getNewestVersion())) {
-            const updateItem = this.statusBarItems.find(
-                (statusBarItem) => statusBarItem.getStatusBarItemType() === "update-available",
-            );
-
-            updateItem.setText("Spaced Repetition: new Update!");
-        }
+        /*         if (this.plugin.manifest.version !== (await this.getNewestVersion())) {
+                    const updateItem = this.statusBarItems.find(
+                        (statusBarItem) => statusBarItem.getStatusBarItemType() === "update-available",
+                    );
+        
+                    updateItem.setText("Spaced Repetition: new Update!");
+                } */
     }
 
     private async getNewestVersion(): Promise<string> {
