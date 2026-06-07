@@ -164,9 +164,13 @@ export default class ResponseSectionComponent {
 
         if (settings.showIntervalInReviewButtons) {
             if (EmulatedPlatform().isMobile || Platform.isMobile) {
-                button.setButtonText(textInterval(interval, true));
+                button.setButtonText(
+                    `${textInterval(interval, true)}\n${schedule.formatDueDate()}`,
+                );
             } else {
-                button.setButtonText(`${buttonName} - ${textInterval(interval, false)}`);
+                button.setButtonText(
+                    `${buttonName} - ${textInterval(interval, false)}\n${schedule.formatDueDate()}`,
+                );
             }
         } else {
             button.setButtonText(buttonName);

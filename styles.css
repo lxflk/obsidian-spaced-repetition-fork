@@ -1,4 +1,4 @@
-/* ../../../../../tmp/tmp-59346-vAe8wZg8v097/obsidian-spaced-repetition/src/ui/styles.css */
+/* ../../../../../tmp/tmp-35273-RjHDsVbKo7Zh/obsidian-spaced-repetition/src/ui/styles.css */
 .sr-bg-blue,
 .sr-bg-yellow,
 .sr-bg-green,
@@ -422,11 +422,16 @@
   display: flex;
   gap: var(--size-4-4);
   & .sr-response-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     height: 48px;
     flex-grow: 1;
     margin: auto;
-    line-height: 48px;
+    line-height: 1.2;
+    padding: 0 var(--size-2-2);
     text-align: center;
+    white-space: pre-line;
     cursor: pointer;
     user-select: none;
   }
