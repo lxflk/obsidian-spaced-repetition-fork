@@ -16,10 +16,25 @@ beforeAll(() => {
 describe("load", () => {
     test("Multiple questions, none with too many schedule details", async () => {
         const noteText: string = `#flashcards/test
-Q1::A1
-#flashcards Q2::A2
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
+
+#flashcards
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
 <!--SR:!2023-09-02,4,270-->
-Q3:::A3
+
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3
 <!--SR:!2023-09-02,4,270-->
 `;
         const file: UnitTestSRFile = new UnitTestSRFile(noteText);
@@ -29,10 +44,25 @@ Q3:::A3
 
     test("Multiple questions, some with too many schedule details", async () => {
         const noteText: string = `#flashcards/test
-Q1::A1
-#flashcards Q2::A2
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
+
+#flashcards
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
 <!--SR:!2023-09-02,4,270!2023-09-02,4,270-->
-Q3:::A3
+
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3
 <!--SR:!2023-09-02,4,270-->
 `;
         const file: UnitTestSRFile = new UnitTestSRFile(noteText);

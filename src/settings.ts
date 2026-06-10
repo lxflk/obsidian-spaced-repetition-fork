@@ -16,11 +16,6 @@ export interface SRSettings {
     convertBoldTextToClozes: boolean;
     convertCurlyBracketsToClozes: boolean;
     clozePatterns: string[];
-    singleLineCardSeparator: string;
-    singleLineReversedCardSeparator: string;
-    multilineCardSeparator: string;
-    multilineReversedCardSeparator: string;
-    multilineCardEndMarker: string;
     multilineCardStartMarker: string;
     multilineCardScopedSeparator: string;
     multilineCardScopedEndMarker: string;
@@ -90,14 +85,9 @@ export const DEFAULT_SETTINGS: SRSettings = {
     convertBoldTextToClozes: false,
     convertCurlyBracketsToClozes: false,
     clozePatterns: ["==[123;;]answer[;;hint]=="],
-    singleLineCardSeparator: "::",
-    singleLineReversedCardSeparator: ":::",
-    multilineCardSeparator: "?",
-    multilineReversedCardSeparator: "??",
-    multilineCardEndMarker: "",
-    multilineCardStartMarker: "",
-    multilineCardScopedSeparator: "",
-    multilineCardScopedEndMarker: "",
+    multilineCardStartMarker: "===front===",
+    multilineCardScopedSeparator: "===back===",
+    multilineCardScopedEndMarker: "===end===",
     editLaterTag: "#edit-later",
 
     // notes
@@ -244,10 +234,6 @@ export class SettingsUtil {
         }
 
         if (new Set([startMarker, separator, endMarker]).size !== 3) {
-            return null;
-        }
-
-        if (separator === normalizeMarker(settings.multilineCardSeparator)) {
             return null;
         }
 

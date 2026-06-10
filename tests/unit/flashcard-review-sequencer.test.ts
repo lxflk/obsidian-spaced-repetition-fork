@@ -25,6 +25,7 @@ import {
     setupStaticDateProviderOriginDatePlusDays,
 } from "src/utils/dates";
 
+import { convertLegacyInlineCardsToBounded } from "./helpers/bounded-card-test-utils";
 import { UnitTestSRFile } from "./helpers/unit-test-file";
 import { unitTestSetupStandardDataStoreAlgorithm } from "./helpers/unit-test-setup";
 import { SampleItemDecks } from "./sample-items";
@@ -56,8 +57,9 @@ class TestContext {
     }
 
     async resetContext(text: string, daysAfterOrigin: number): Promise<void> {
-        this.originalText = text;
-        this.file.content = text;
+        const boundedText = convertLegacyInlineCardsToBounded(text);
+        this.originalText = boundedText;
+        this.file.content = boundedText;
         const cardSequencer: IDeckTreeIterator = new DeckTreeIterator(this.iteratorOrder, null);
         new FlashcardReviewSequencer(
             this.reviewMode,
@@ -103,6 +105,7 @@ class TestContext {
         text: string,
         fakeFilePath?: string,
     ): TestContext {
+        const boundedText = convertLegacyInlineCardsToBounded(text);
         const settingsClone: SRSettings = { ...settings };
         const cardSequencer: IDeckTreeIterator = new DeckTreeIterator(iteratorOrder, null);
         unitTestSetupStandardDataStoreAlgorithm(settingsClone);
@@ -120,7 +123,7 @@ class TestContext {
             cardPostponementList,
             dueDateFlashcardHistogram,
         );
-        const file: UnitTestSRFile = new UnitTestSRFile(text, fakeFilePath);
+        const file: UnitTestSRFile = new UnitTestSRFile(boundedText, fakeFilePath);
 
         const result: TestContext = new TestContext({
             settings: settingsClone,
@@ -130,7 +133,7 @@ class TestContext {
             reviewSequencer,
             questionPostponementList: cardPostponementList,
             file,
-            originalText: text,
+            originalText: boundedText,
             fakeFilePath,
         });
         return result;
@@ -182,11 +185,9 @@ async function checkReviewResponseReviewMode(
     expect(card.scheduleInfo.dueDate.unix).toEqual(moment(info.cardQ2PostReviewDueDate).unix);
 
     // Note text has been updated
-    const expectedText: string = c.originalText.replace(
-        info.cardQ2PreReviewText,
-        info.cardQ2PostReviewText,
+    expect(await c.file.read()).toContain(
+        `<!--SR:!${info.cardQ2PostReviewDueDate},${info.cardQ2PostReviewInterval},${info.cardQ2PostReviewEase}-->`,
     );
-    expect(await c.file.read()).toEqual(expectedText);
 }
 
 async function checkReviewResponseCramMode(reviewResponse: ReviewResponse): Promise<TestContext> {
@@ -377,9 +378,9 @@ describe("skipCurrentCard", () => {
         expect(c.reviewSequencer.currentCard.front).toEqual("Q1");
 
         skipThenCheckCardFront(c.reviewSequencer, "Q2");
-        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(2);
+        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(1);
 
-        // Skipping Q2 skips over both Q2::A2 and A2::Q2, goes straight to Q3
+        // Reversed inline cards are no longer supported, so Q2 has one sibling.
         skipThenCheckCardFront(c.reviewSequencer, "Q3");
         expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(1);
 
@@ -395,7 +396,7 @@ describe("skipCurrentCard", () => {
 
         c.reviewSequencer.skipCurrentCard();
         expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
-        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(2);
+        expect(c.reviewSequencer.currentQuestion.cards.length).toEqual(1);
 
         c.reviewSequencer.skipCurrentCard();
         expect(c.reviewSequencer.currentCard.front).toEqual("Q3");
@@ -762,9 +763,11 @@ Q1::A1
 
         test("Answer includes MathJax within $$", async () => {
             const fileText: string = `#flashcards
+===front===
 What is Newton's equation for gravitational force
-?
-$$\\huge F_g=\\frac {G m_1 m_2}{d^2}$$`;
+===back===
+$$\\huge F_g=\\frac {G m_1 m_2}{d^2}$$
+===end=== ^sr-mathjax`;
 
             const c: TestContext = TestContext.Create(
                 orderDueFirstSequential,
@@ -792,10 +795,13 @@ $$\\huge F_g=\\frac {G m_1 m_2}{d^2}$$`;
             settings.burySiblingCards = true;
             const indent: string = "    ";
 
-            // Note that "- bar?::baz" is intentionally indented
+            // Note that "- bar?" is intentionally indented
             const text: string = `#flashcards
-- foo
-${indent}- bar?::baz
+===front===
+${indent}- bar?
+===back===
+baz
+===end=== ^sr-indented
 `;
 
             const c: TestContext = TestContext.Create(
@@ -808,7 +814,7 @@ ${indent}- bar?::baz
 
             expect(c.reviewSequencer.currentCard.front).toMatch(`${indent}- bar?`);
 
-            // After reviewing, check the text (explicitly text includes the whitespace before "- bar?::baz"at)
+            // After reviewing, check the text explicitly includes the whitespace before "- bar?"
             await c.reviewSequencer.processReview(ReviewResponse.Easy);
             const expectedText: string = `${text}<!--SR:!2023-09-10,4,270-->\n`;
             expect(await c.file.read()).toEqual(expectedText);
@@ -849,247 +855,51 @@ ${indent}- bar?::baz
 });
 
 describe("updateCurrentQuestionText", () => {
-    const space: string = " ";
+    test("Bounded card with schedule is updated in the file", async () => {
+        const text: string = `#flashcards
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
 
-    describe("Checking update to file", () => {
-        describe("Single line card type; Settings - schedule on following line", () => {
-            test("Question has schedule on following line before/after update", async () => {
-                const text: string = `
-#flashcards Q1::A1
-
-#flashcards Q2::A2
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
 <!--SR:!2023-09-02,4,270-->
 
-#flashcards Q3::A3`;
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3`;
 
-                const updatedQ: string =
-                    "A much more in depth question::A much more detailed answer";
-                const originalStr: string = `#flashcards Q2::A2
-<!--SR:!2023-09-02,4,270-->`;
-                const updatedStr: string = `#flashcards A much more in depth question::A much more detailed answer
-<!--SR:!2023-09-02,4,270-->`;
-                await checkUpdateCurrentQuestionText(
-                    text,
-                    updatedQ,
-                    originalStr,
-                    updatedStr,
-                    DEFAULT_SETTINGS,
-                );
-            });
-
-            test("Question has schedule on same line (but pushed to following line due to settings)", async () => {
-                const text: string = `
-#flashcards Q1::A1
-
-#flashcards Q2::A2 <!--SR:!2023-09-02,4,270-->
-
-#flashcards Q3::A3`;
-
-                const updatedQ: string =
-                    "A much more in depth question::A much more detailed answer";
-                const originalStr: string = "#flashcards Q2::A2 <!--SR:!2023-09-02,4,270-->";
-                const expectedUpdatedStr: string = `#flashcards A much more in depth question::A much more detailed answer
-<!--SR:!2023-09-02,4,270-->`;
-                await checkUpdateCurrentQuestionText(
-                    text,
-                    updatedQ,
-                    originalStr,
-                    expectedUpdatedStr,
-                    DEFAULT_SETTINGS,
-                );
-            });
-        });
-
-        describe("Single line card type; Settings - schedule on same line", () => {
-            const settings: SRSettings = { ...DEFAULT_SETTINGS };
-            settings.cardCommentOnSameLine = true;
-
-            test("Question has schedule on same line before/after", async () => {
-                const text1: string = `
-#flashcards Q1::A1
-
-#flashcards Q2::A2 <!--SR:!2023-09-02,4,270-->
-
-#flashcards Q3::A3`;
-
-                const updatedQ: string =
-                    "A much more in depth question::A much more detailed answer";
-                const originalStr: string = "#flashcards Q2::A2 <!--SR:!2023-09-02,4,270-->";
-                const updatedStr: string =
-                    "#flashcards A much more in depth question::A much more detailed answer <!--SR:!2023-09-02,4,270-->";
-                await checkUpdateCurrentQuestionText(
-                    text1,
-                    updatedQ,
-                    originalStr,
-                    updatedStr,
-                    settings,
-                );
-            });
-
-            test("Question has schedule on following line (but placed on same line due to settings)", async () => {
-                const text: string = `
-#flashcards Q1::A1
-
-#flashcards Q2::A2
-<!--SR:!2023-09-02,4,270-->
-
-#flashcards Q3::A3`;
-
-                const updatedQ: string =
-                    "A much more in depth question::A much more detailed answer";
-                const originalStr: string = `#flashcards Q2::A2
-<!--SR:!2023-09-02,4,270-->`;
-                const updatedStr: string =
-                    "#flashcards A much more in depth question::A much more detailed answer <!--SR:!2023-09-02,4,270-->";
-                await checkUpdateCurrentQuestionText(
-                    text,
-                    updatedQ,
-                    originalStr,
-                    updatedStr,
-                    settings,
-                );
-            });
-        });
-
-        describe("Multiline card type; Settings - schedule on following line", () => {
-            test("Question starts immediately after tag; Existing schedule present", async () => {
-                const originalStr: string = `Q2
-?
-A2
+        const updatedQuestionText: string = `===front===
+A much more in depth question
+===back===
+A much more detailed answer
+===end===`;
+        const expectedUpdatedStr: string = `===front===
+A much more in depth question
+===back===
+A much more detailed answer
+===end=== ^sr-q2
 <!--SR:!2023-09-02,4,270-->`;
 
-                const text: string = `
-#flashcards Q1::A1
-
-#flashcards ${originalStr}
-
-#flashcards Q3::A3`;
-
-                const updatedQ: string = `Multiline question
-Question starting immediately after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2`;
-
-                const expectedUpdatedStr: string = `Multiline question
-Question starting immediately after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2
-<!--SR:!2023-09-02,4,270-->`;
-
-                await checkUpdateCurrentQuestionText(
-                    text,
-                    updatedQ,
-                    originalStr,
-                    expectedUpdatedStr,
-                    DEFAULT_SETTINGS,
-                );
-            });
-
-            test("Question starts on same line as tag (after two spaces); Existing schedule present", async () => {
-                const originalStr: string = `Q2
-?
-A2
-<!--SR:!2023-09-02,4,270-->`;
-
-                const text: string = `
-#flashcards Q1::A1
-
-#flashcards${space}${space}${originalStr}
-
-#flashcards Q3::A3`;
-
-                const updatedQ: string = `Multiline question
-Question starting immediately after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2`;
-
-                const expectedUpdatedStr: string = `Multiline question
-Question starting immediately after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2
-<!--SR:!2023-09-02,4,270-->`;
-
-                await checkUpdateCurrentQuestionText(
-                    text,
-                    updatedQ,
-                    originalStr,
-                    expectedUpdatedStr,
-                    DEFAULT_SETTINGS,
-                );
-            });
-
-            test("Question starts line after tag; Existing schedule present", async () => {
-                const originalStr: string = `#flashcards
+        await checkUpdateCurrentQuestionText(
+            text,
+            updatedQuestionText,
+            `===front===
 Q2
-?
+===back===
 A2
-<!--SR:!2023-09-02,4,270-->`;
-
-                const text: string = `
-#flashcards Q1::A1
-
-${originalStr}
-
-#flashcards Q3::A3`;
-
-                const updatedQ: string = `Multiline question
-Question starting line after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2`;
-
-                const expectedUpdatedStr: string = `#flashcards
-Multiline question
-Question starting line after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2
-<!--SR:!2023-09-02,4,270-->`;
-
-                await checkUpdateCurrentQuestionText(
-                    text,
-                    updatedQ,
-                    originalStr,
-                    expectedUpdatedStr,
-                    DEFAULT_SETTINGS,
-                );
-            });
-
-            test("Question starts line after tag (no white space after tag); New card", async () => {
-                const originalQuestionStr: string = `#flashcards
-Q2
-?
-A2`;
-
-                const fileText: string = `
-${originalQuestionStr}
-
-#flashcards Q1::A1
-
-#flashcards Q3::A3`;
-
-                const updatedQuestionText: string = `Multiline question
-Question starting immediately after tag
-?
-A2 (answer now includes more detail)
-extra answer line 2`;
-
-                const expectedUpdatedStr: string = `#flashcards
-${updatedQuestionText}`;
-
-                await checkUpdateCurrentQuestionText(
-                    fileText,
-                    updatedQuestionText,
-                    originalQuestionStr,
-                    expectedUpdatedStr,
-                    DEFAULT_SETTINGS,
-                );
-            });
-        });
+===end=== ^sr-q2
+<!--SR:!2023-09-02,4,270-->`,
+            expectedUpdatedStr,
+            DEFAULT_SETTINGS,
+        );
     });
 });
 
@@ -1194,16 +1004,35 @@ async function checkStats(
 
 describe("Sequences", () => {
     test("Update question text, followed by review response", async () => {
-        const text1: string = `
-#flashcards Q2::A2
+        const text1: string = `#flashcards
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
 
-#flashcards Q3::A3`;
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3`;
 
         // Do the update step
-        const updatedQ: string = "A much more in depth question::A much more detailed answer";
-        const originalStr: string = "#flashcards Q2::A2";
-        const updatedStr: string =
-            "#flashcards A much more in depth question::A much more detailed answer";
+        const updatedQ: string = `===front===
+A much more in depth question
+===back===
+A much more detailed answer
+===end===`;
+        const originalStr: string = `===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2`;
+        const updatedStr: string = `===front===
+A much more in depth question
+===back===
+A much more detailed answer
+===end=== ^sr-q2`;
 
         const c: TestContext = await checkUpdateCurrentQuestionText(
             text1,
@@ -1217,11 +1046,15 @@ describe("Sequences", () => {
         await c.reviewSequencer.processReview(ReviewResponse.Hard);
 
         // Schedule for the reviewed card has been updated
-        const expectedText: string = `
+        const expectedText: string = `#flashcards
 ${updatedStr}
 <!--SR:!2023-09-07,1,230-->
 
-#flashcards Q3::A3`;
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3`;
 
         expect(await c.file.read()).toEqual(expectedText);
     });

@@ -273,7 +273,7 @@ export default class SRPlugin extends Plugin {
             folderTopicPath,
         );
         if (note.hasChanged) {
-            note.writeNoteFile(this.data.settings);
+            await note.writeNoteFile(this.data.settings);
         }
         return note;
     }

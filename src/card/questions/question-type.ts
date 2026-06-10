@@ -30,81 +30,29 @@ export interface IQuestionTypeHandler {
     expand(questionText: string, settings: SRSettings): CardFrontBack[];
 }
 
-class QuestionTypeSingleLineBasic implements IQuestionTypeHandler {
-    expand(questionText: string, settings: SRSettings): CardFrontBack[] {
-        const idx: number = questionText.indexOf(settings.singleLineCardSeparator);
-        const item: CardFrontBack = new CardFrontBack(
-            questionText.substring(0, idx),
-            questionText.substring(idx + settings.singleLineCardSeparator.length),
-        );
-        const result: CardFrontBack[] = [item];
-        return result;
-    }
-}
-
-class QuestionTypeSingleLineReversed implements IQuestionTypeHandler {
-    expand(questionText: string, settings: SRSettings): CardFrontBack[] {
-        const idx: number = questionText.indexOf(settings.singleLineReversedCardSeparator);
-        const side1: string = questionText.substring(0, idx),
-            side2: string = questionText.substring(
-                idx + settings.singleLineReversedCardSeparator.length,
-            );
-        const result: CardFrontBack[] = [
-            new CardFrontBack(side1, side2),
-            new CardFrontBack(side2, side1),
-        ];
-        return result;
-    }
-}
-
 class QuestionTypeMultiLineBasic implements IQuestionTypeHandler {
     expand(questionText: string, settings: SRSettings): CardFrontBack[] {
         // We don't need to worry about "\r\n", as multi line questions processed by parse() concatenates lines explicitly with "\n"
         const questionLines = questionText.split("\n");
         const blockConfig = SettingsUtil.getMultilineCardBlockConfig(settings);
 
-        let side1: string;
-        let side2: string;
         if (
-            blockConfig &&
-            questionLines[0]?.trim() === blockConfig.startMarker &&
-            questionLines[questionLines.length - 1]?.trim() === blockConfig.endMarker
+            !blockConfig ||
+            questionLines[0]?.trim() !== blockConfig.startMarker ||
+            questionLines[questionLines.length - 1]?.trim() !== blockConfig.endMarker
         ) {
-            const lineIdx = findLineIndexOfSearchStringIgnoringWs(
-                questionLines,
-                blockConfig.separator,
-            );
-            side1 = questionLines.slice(1, lineIdx).join("\n");
-            side2 = questionLines.slice(lineIdx + 1, -1).join("\n");
-        } else {
-            const lineIdx = findLineIndexOfSearchStringIgnoringWs(
-                questionLines,
-                settings.multilineCardSeparator,
-            );
-            side1 = questionLines.slice(0, lineIdx).join("\n");
-            side2 = questionLines.slice(lineIdx + 1).join("\n");
+            return [];
         }
 
+        const lineIdx = findLineIndexOfSearchStringIgnoringWs(questionLines, blockConfig.separator);
+        if (lineIdx < 1) {
+            return [];
+        }
+
+        const side1: string = questionLines.slice(1, lineIdx).join("\n");
+        const side2: string = questionLines.slice(lineIdx + 1, -1).join("\n");
+
         const result: CardFrontBack[] = [new CardFrontBack(side1, side2)];
-        return result;
-    }
-}
-
-class QuestionTypeMultiLineReversed implements IQuestionTypeHandler {
-    expand(questionText: string, settings: SRSettings): CardFrontBack[] {
-        // We don't need to worry about "\r\n", as multi line questions processed by parse() concatenates lines explicitly with "\n"
-        const questionLines = questionText.split("\n");
-        const lineIdx = findLineIndexOfSearchStringIgnoringWs(
-            questionLines,
-            settings.multilineReversedCardSeparator,
-        );
-        const side1: string = questionLines.slice(0, lineIdx).join("\n");
-        const side2: string = questionLines.slice(lineIdx + 1).join("\n");
-
-        const result: CardFrontBack[] = [
-            new CardFrontBack(side1, side2),
-            new CardFrontBack(side2, side1),
-        ];
         return result;
     }
 }
@@ -163,17 +111,8 @@ export class QuestionTypeFactory {
     static create(questionType: CardType): IQuestionTypeHandler {
         let handler: IQuestionTypeHandler;
         switch (questionType) {
-            case CardType.SingleLineBasic:
-                handler = new QuestionTypeSingleLineBasic();
-                break;
-            case CardType.SingleLineReversed:
-                handler = new QuestionTypeSingleLineReversed();
-                break;
             case CardType.MultiLineBasic:
                 handler = new QuestionTypeMultiLineBasic();
-                break;
-            case CardType.MultiLineReversed:
-                handler = new QuestionTypeMultiLineReversed();
                 break;
             case CardType.Cloze:
                 handler = new QuestionTypeCloze();

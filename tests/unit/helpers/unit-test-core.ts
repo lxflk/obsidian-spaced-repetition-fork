@@ -6,6 +6,7 @@ import { OsrCore } from "src/core";
 import { NoteReviewQueue } from "src/note/note-review-queue";
 import { SRSettings } from "src/settings";
 
+import { convertLegacyInlineCardsToBounded } from "./bounded-card-test-utils";
 import { UnitTestSRFile } from "./unit-test-file";
 import { UnitTestLinkInfoFinder } from "./unit-test-link-info-finder";
 
@@ -41,6 +42,7 @@ export class UnitTestOsrCore extends OsrCore {
         for (const filename of files) {
             const fullPath: string = path.join(dir, filename);
             const f: UnitTestSRFile = UnitTestSRFile.CreateFromFsFile(fullPath);
+            f.content = convertLegacyInlineCardsToBounded(f.content);
             this.fileMap.set(fullPath, f);
         }
 

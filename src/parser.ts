@@ -5,14 +5,9 @@ import { CardType } from "src/card/questions/question";
 export let debugParser = false;
 
 export interface ParserOptions {
-    singleLineCardSeparator: string;
-    singleLineReversedCardSeparator: string;
-    multilineCardSeparator: string;
-    multilineReversedCardSeparator: string;
-    multilineCardEndMarker: string;
-    multilineCardStartMarker?: string;
-    multilineCardScopedSeparator?: string;
-    multilineCardScopedEndMarker?: string;
+    multilineCardStartMarker: string;
+    multilineCardScopedSeparator: string;
+    multilineCardScopedEndMarker: string;
     clozePatterns: string[];
 }
 
@@ -40,39 +35,6 @@ export class ParsedQuestionInfo {
     }
 }
 
-function markerInsideCodeBlock(text: string, marker: string, markerIndex: number): boolean {
-    let goingBack = markerIndex - 1,
-        goingForward = markerIndex + marker.length;
-    let backTicksBefore = 0,
-        backTicksAfter = 0;
-
-    while (goingBack >= 0) {
-        if (text[goingBack] === "`") backTicksBefore++;
-        goingBack--;
-    }
-
-    while (goingForward < text.length) {
-        if (text[goingForward] === "`") backTicksAfter++;
-        goingForward++;
-    }
-
-    // If there's an odd number of backticks before and after,
-    //  the marker is inside an inline code block
-    return backTicksBefore % 2 === 1 && backTicksAfter % 2 === 1;
-}
-
-function hasInlineMarker(text: string, marker: string): boolean {
-    // No marker provided
-    if (marker.length === 0) return false;
-
-    // Check if the marker is in the text
-    const markerIdx = text.indexOf(marker);
-    if (markerIdx === -1) return false;
-
-    // Check if it's inside an inline code block
-    return !markerInsideCodeBlock(text, marker, markerIdx);
-}
-
 interface MultilineCardBlockConfig {
     startMarker: string;
     separator: string;
@@ -85,19 +47,15 @@ interface ActiveMultilineCardBlock {
 }
 
 function getMultilineCardBlockConfig(options: ParserOptions): MultilineCardBlockConfig | null {
-    const startMarker = options.multilineCardStartMarker?.trim() ?? "";
-    const separator = options.multilineCardScopedSeparator?.trim() ?? "";
-    const endMarker = options.multilineCardScopedEndMarker?.trim() ?? "";
+    const startMarker = options.multilineCardStartMarker.trim();
+    const separator = options.multilineCardScopedSeparator.trim();
+    const endMarker = options.multilineCardScopedEndMarker.trim();
 
     if (!startMarker || !separator || !endMarker) {
         return null;
     }
 
     if (new Set([startMarker, separator, endMarker]).size !== 3) {
-        return null;
-    }
-
-    if (separator === options.multilineCardSeparator?.trim()) {
         return null;
     }
 
@@ -109,13 +67,27 @@ function getMultilineCardBlockConfig(options: ParserOptions): MultilineCardBlock
 }
 
 function lineHasScopedCardEndMarker(text: string, endMarker: string): boolean {
-    if (text === endMarker) {
+    if (!text.startsWith(endMarker)) {
+        return false;
+    }
+
+    let remainder = text.slice(endMarker.length).trim();
+    if (remainder.length === 0) {
         return true;
     }
 
-    return (
-        text.startsWith(endMarker) && text.slice(endMarker.length).trimStart().startsWith("<!--SR:")
-    );
+    const tokenPatterns = [/^\^[a-zA-Z0-9-]+/, /^<!--SR:.+?-->/];
+    while (remainder.length > 0) {
+        const matchingToken = tokenPatterns
+            .map((pattern) => remainder.match(pattern))
+            .find((match) => match !== null);
+        if (!matchingToken) {
+            return false;
+        }
+        remainder = remainder.slice(matchingToken[0].length).trim();
+    }
+
+    return true;
 }
 
 /**
@@ -131,13 +103,6 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
     if (debugParser) {
         console.log("Text to parse:\n<<<" + text + ">>>");
     }
-
-    // Sort inline separators by length, longest first
-    const inlineSeparators = [
-        { separator: options.singleLineCardSeparator, type: CardType.SingleLineBasic },
-        { separator: options.singleLineReversedCardSeparator, type: CardType.SingleLineReversed },
-    ];
-    inlineSeparators.sort((a, b) => b.separator.length - a.separator.length);
 
     const cards: ParsedQuestionInfo[] = [];
     let cardText = "";
@@ -206,21 +171,10 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
             continue;
         }
 
-        // Have we reached the end of a card?
+        // Cloze cards continue until a blank line or the end of the note.
         const isEmptyLine = currentTrimmed.length === 0;
-        const hasMultilineCardEndMarker =
-            options.multilineCardEndMarker && currentTrimmed === options.multilineCardEndMarker;
-        if (
-            // We've probably reached the end of a card
-            (isEmptyLine && !options.multilineCardEndMarker) ||
-            // Empty line & we're not picking up any card
-            (isEmptyLine && cardType === null) ||
-            // We've reached the end of a multi line card &
-            //  we're using custom end markers
-            hasMultilineCardEndMarker
-        ) {
+        if (isEmptyLine) {
             if (cardType) {
-                // Create a new card
                 lastLineNo = i - 1;
                 cards.push(
                     new ParsedQuestionInfo(cardType, cardText.trimEnd(), firstLineNo, lastLineNo),
@@ -244,59 +198,23 @@ export function parse(text: string, options: ParserOptions): ParsedQuestionInfo[
             continue;
         }
 
-        // Update card text
-        if (cardText.length > 0) {
-            cardText += "\n";
-        }
-        cardText += currentLine.trimEnd();
-
-        // Pick up inline cards
-        for (const { separator, type } of inlineSeparators) {
-            if (hasInlineMarker(currentLine, separator)) {
-                cardType = type;
-                break;
-            }
-        }
-
-        if (cardType === CardType.SingleLineBasic || cardType === CardType.SingleLineReversed) {
-            cardText = currentLine;
-            firstLineNo = i;
-
-            // Pick up scheduling information if present
-            if (i + 1 < lines.length && lines[i + 1].startsWith("<!--SR:")) {
-                cardText += "\n" + lines[i + 1];
-                i++;
-            }
-
-            lastLineNo = i;
-            cards.push(new ParsedQuestionInfo(cardType, cardText, firstLineNo, lastLineNo));
-
-            cardType = null;
-            cardText = "";
-        } else if (currentTrimmed === options.multilineCardSeparator) {
-            // Ignore card if the front of the card is empty
-            if (cardText.length > 1) {
-                // Pick up multiline basic cards
-                cardType = CardType.MultiLineBasic;
-            }
-        } else if (currentTrimmed === options.multilineReversedCardSeparator) {
-            // Ignore card if the front of the card is empty
-            if (cardText.length > 1) {
-                // Pick up multiline basic cards
-                cardType = CardType.MultiLineReversed;
-            }
-        } else if (currentLine.startsWith("```") || currentLine.startsWith("~~~")) {
+        if (currentLine.startsWith("```") || currentLine.startsWith("~~~")) {
             // Pick up codeblocks
             const codeBlockClose = currentLine.match(/`+|~+/)[0];
             while (i + 1 < lines.length && !lines[i + 1].startsWith(codeBlockClose)) {
                 i++;
-                cardText += "\n" + lines[i];
             }
-            cardText += "\n" + codeBlockClose;
             i++;
         } else if (cardType === null && clozecrafter.isClozeNote(currentLine)) {
             // Pick up cloze cards
             cardType = CardType.Cloze;
+            cardText = currentLine.trimEnd();
+            firstLineNo = i;
+        } else if (cardType === CardType.Cloze) {
+            if (cardText.length > 0) {
+                cardText += "\n";
+            }
+            cardText += currentLine.trimEnd();
         }
     }
 

@@ -11,7 +11,6 @@ import { unitTestSetupStandardDataStoreAlgorithm } from "./helpers/unit-test-set
 const boundedSettings: SRSettings = {
     ...DEFAULT_SETTINGS,
     flashcardTags: ["#IB-Deck"],
-    multilineCardEndMarker: "",
     multilineCardStartMarker: "===front===",
     multilineCardScopedSeparator: "===back===",
     multilineCardScopedEndMarker: "===end===",
@@ -67,7 +66,7 @@ In the GI tract, microbial concentration increases progressively because conditi
         );
         await DataStore.getInstance().questionWriteSchedule(question);
 
-        expect(file.content).toContain("===end===\n<!--SR:!2026-06-14,4,204-->");
+        expect(file.content).toMatch(/===end=== \^sr-[a-f0-9]+\n<!--SR:!2026-06-14,4,204-->/);
     });
 
     test("throws instead of silently accepting a stale source card", async () => {

@@ -16,11 +16,25 @@ beforeAll(() => {
 });
 
 describe("Multiple questions in the text", () => {
-    test("SingleLineBasic: No schedule info", async () => {
+    test("Bounded cards: No schedule info", async () => {
         const noteText: string = `#flashcards/test
-Q1::A1
-Q2::A2
-Q3::A3
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
+
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
+
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3
 `;
         const file: UnitTestSRFile = new UnitTestSRFile(noteText);
         const folderTopicPath = TopicPath.emptyPath;

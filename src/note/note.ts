@@ -1,4 +1,5 @@
 import { Question } from "src/card/questions/question";
+import { replaceQuestionsByLineRange } from "src/card/questions/question-block-id-normalizer";
 import { Deck } from "src/deck/deck";
 import { ISRFile } from "src/file";
 import { SRSettings } from "src/settings";
@@ -41,13 +42,9 @@ export class Note {
     }
 
     async writeNoteFile(settings: SRSettings): Promise<void> {
-        let fileText: string = await this.file.read();
-        for (const question of this.questionList) {
-            if (question.hasChanged) {
-                fileText = question.updateQuestionWithinNoteText(fileText, settings);
-            }
-        }
-        await this.file.write(fileText);
+        const fileText: string = await this.file.read();
+        const newText = replaceQuestionsByLineRange(fileText, this.questionList, settings);
+        await this.file.write(newText);
         this.questionList.forEach((question) => (question.hasChanged = false));
     }
 }

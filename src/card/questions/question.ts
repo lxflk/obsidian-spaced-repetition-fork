@@ -8,14 +8,11 @@ import { DataStore } from "src/data-stores/base/data-store";
 import { TopicPath, TopicPathList, TopicPathWithWs } from "src/deck/topic-path";
 import { Note } from "src/note/note";
 import { ParsedQuestionInfo } from "src/parser";
-import { SRSettings } from "src/settings";
+import { SettingsUtil, SRSettings } from "src/settings";
 import { cyrb53, MultiLineTextFinder, stringTrimStart, TextDirection } from "src/utils/strings";
 
 export enum CardType {
-    SingleLineBasic,
-    SingleLineReversed,
     MultiLineBasic,
-    MultiLineReversed,
     Cloze,
 }
 
@@ -215,6 +212,19 @@ export class Question {
         return result;
     }
 
+    private isBoundedMultilineCard(settings: SRSettings): boolean {
+        const blockConfig = SettingsUtil.getMultilineCardBlockConfig(settings);
+        if (!blockConfig || this.questionType !== CardType.MultiLineBasic) {
+            return false;
+        }
+
+        const questionLines = this.questionText.actualQuestion.split("\n");
+        return (
+            questionLines[0]?.trim() === blockConfig.startMarker &&
+            questionLines[questionLines.length - 1]?.trim() === blockConfig.endMarker
+        );
+    }
+
     setCardList(cards: Card[]): void {
         this.cards = cards;
         this.cards.forEach((card) => (card.question = this));
@@ -228,7 +238,10 @@ export class Question {
             result = result.trimEnd();
             const scheduleHtml =
                 DataStoreAlgorithm.getInstance().questionFormatScheduleAsHtmlComment(this);
-            if (blockId) {
+            if (this.isBoundedMultilineCard(settings)) {
+                if (blockId) result += ` ${blockId}`;
+                result += `\n${scheduleHtml}`;
+            } else if (blockId) {
                 if (this.isCardCommentsOnSameLine(settings))
                     result += ` ${scheduleHtml} ${blockId}`;
                 else result += ` ${blockId}\n${scheduleHtml}`;

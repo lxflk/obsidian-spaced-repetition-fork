@@ -16,20 +16,24 @@ describe("SettingsUtil", () => {
 
     test("getMultilineCardBlockConfig", () => {
         let settings: SRSettings = { ...DEFAULT_SETTINGS };
-        expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual(null);
+        expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual({
+            startMarker: "===front===",
+            separator: "===back===",
+            endMarker: "===end===",
+        });
 
         settings = {
             ...DEFAULT_SETTINGS,
             multilineCardStartMarker: "===start===",
-            multilineCardScopedSeparator: "===",
+            multilineCardScopedSeparator: "",
         };
         expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual(null);
 
         settings = {
             ...DEFAULT_SETTINGS,
             multilineCardStartMarker: "===start===",
-            multilineCardScopedSeparator: "?",
-            multilineCardScopedEndMarker: "===end===",
+            multilineCardScopedSeparator: "===",
+            multilineCardScopedEndMarker: "===",
         };
         expect(SettingsUtil.getMultilineCardBlockConfig(settings)).toEqual(null);
 

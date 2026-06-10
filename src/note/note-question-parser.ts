@@ -3,6 +3,7 @@ import { TagCache } from "obsidian";
 import { RepItemScheduleInfo } from "src/algorithms/base/rep-item-schedule-info";
 import { Card } from "src/card/card";
 import { Question, QuestionText } from "src/card/questions/question";
+import { normalizeQuestionBlockIds } from "src/card/questions/question-block-id-normalizer";
 import { CardFrontBack, CardFrontBackUtil } from "src/card/questions/question-type";
 import { DataStore } from "src/data-stores/base/data-store";
 import { TopicPath, TopicPathList } from "src/deck/topic-path";
@@ -91,6 +92,8 @@ export class NoteQuestionParser {
             if (onlyKeepQuestionsWithTopicPath) {
                 this.questionList = this.questionList.filter((q) => q.topicPathList);
             }
+
+            normalizeQuestionBlockIds(this.questionList, noteText, noteFile.path);
         } else {
             this.questionList = [] as Question[];
         }
@@ -113,7 +116,7 @@ export class NoteQuestionParser {
         for (const parsedQuestionInfo of parsedQuestionInfoList) {
             const question: Question = this.createQuestionObject(parsedQuestionInfo, textDirection);
 
-            // Each rawCardText can turn into multiple CardFrontBack's (e.g. CardType.Cloze, CardType.SingleLineReversed)
+            // Each rawCardText can turn into multiple CardFrontBack's (e.g. CardType.Cloze)
             const cardFrontBackList: CardFrontBack[] = CardFrontBackUtil.expand(
                 question.questionType,
                 question.questionText.actualQuestion,
@@ -146,11 +149,6 @@ export class NoteQuestionParser {
         const settings = this.settings;
         const multilineCardBlockConfig = SettingsUtil.getMultilineCardBlockConfig(settings);
         const parserOptions: ParserOptions = {
-            singleLineCardSeparator: settings.singleLineCardSeparator,
-            singleLineReversedCardSeparator: settings.singleLineReversedCardSeparator,
-            multilineCardSeparator: settings.multilineCardSeparator,
-            multilineReversedCardSeparator: settings.multilineReversedCardSeparator,
-            multilineCardEndMarker: settings.multilineCardEndMarker,
             multilineCardStartMarker: multilineCardBlockConfig?.startMarker ?? "",
             multilineCardScopedSeparator: multilineCardBlockConfig?.separator ?? "",
             multilineCardScopedEndMarker: multilineCardBlockConfig?.endMarker ?? "",

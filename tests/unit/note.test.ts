@@ -17,11 +17,25 @@ beforeAll(() => {
 });
 
 describe("appendCardsToDeck", () => {
-    test("Multiple questions, single card per question", async () => {
+    test("Multiple bounded questions, single card per question", async () => {
         const noteText: string = `#flashcards/test
-Q1::A1
-Q2::A2
-Q3::A3
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
+
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
+
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3
 `;
         const file: UnitTestSRFile = new UnitTestSRFile(noteText);
         const folderTopicPath = TopicPath.emptyPath;
@@ -34,49 +48,82 @@ Q3::A3
         expect(subdeck.newFlashcards[2].front).toEqual("Q3");
         expect(subdeck.dueFlashcards.length).toEqual(0);
     });
-
-    test("Multiple questions, multiple cards per question", async () => {
-        const noteText: string = `#flashcards/test
-Q1:::A1
-Q2:::A2
-Q3:::A3
-`;
-        const file: UnitTestSRFile = new UnitTestSRFile(noteText);
-        const folderTopicPath = TopicPath.emptyPath;
-        const note: Note = await parser.parse(file, TextDirection.Ltr, folderTopicPath);
-        const deck: Deck = Deck.emptyDeck;
-        note.appendCardsToDeck(deck);
-        const subdeck: Deck = deck.getDeck(new TopicPath(["flashcards", "test"]));
-        expect(subdeck.newFlashcards.length).toEqual(6);
-        const frontList = subdeck.newFlashcards.map((card) => card.front);
-
-        expect(frontList).toEqual(["Q1", "A1", "Q2", "A2", "Q3", "A3"]);
-        expect(subdeck.dueFlashcards.length).toEqual(0);
-    });
 });
 
 describe("writeNoteFile", () => {
     test("Multiple questions, some with too many schedule details", async () => {
         const originalText: string = `#flashcards/test
-Q1::A1
-#flashcards Q2::A2
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
+
+#flashcards
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
 <!--SR:!2023-09-02,4,270!2023-09-02,5,270-->
-Q3:::A3
-<!--SR:!2023-09-02,4,270!2023-09-02,5,270!2023-09-02,6,270!2023-09-02,7,270-->
+
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3
+<!--SR:!2023-09-02,4,270!2023-09-02,5,270-->
 `;
         const file: UnitTestSRFile = new UnitTestSRFile(originalText);
         const note: Note = await noteFileLoader.load(file, TextDirection.Ltr, TopicPath.emptyPath);
 
         await note.writeNoteFile(DEFAULT_SETTINGS);
-        const updatedText: string = file.content;
 
-        const expectedText: string = `#flashcards/test
-Q1::A1
-#flashcards Q2::A2
+        expect(file.content).toEqual(`#flashcards/test
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-q1
+
+#flashcards
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-q2
 <!--SR:!2023-09-02,4,270-->
-Q3:::A3
-<!--SR:!2023-09-02,4,270!2023-09-02,5,270-->
+
+===front===
+Q3
+===back===
+A3
+===end=== ^sr-q3
+<!--SR:!2023-09-02,4,270-->
+`);
+    });
+
+    test("adds IDs to duplicated bounded cards by line range", async () => {
+        const originalText: string = `#flashcards/test
+===front===
+Same
+===back===
+Same answer
+===end===
+
+===front===
+Same
+===back===
+Same answer
+===end===
 `;
-        expect(updatedText).toEqual(expectedText);
+        const file: UnitTestSRFile = new UnitTestSRFile(originalText, "duplicate-text.md");
+        const note: Note = await noteFileLoader.load(file, TextDirection.Ltr, TopicPath.emptyPath);
+
+        await note.writeNoteFile(DEFAULT_SETTINGS);
+
+        const ids = [...file.content.matchAll(/ \^sr-[a-f0-9]+/g)].map((match) => match[0].trim());
+        expect(ids).toHaveLength(2);
+        expect(new Set(ids).size).toBe(2);
     });
 });

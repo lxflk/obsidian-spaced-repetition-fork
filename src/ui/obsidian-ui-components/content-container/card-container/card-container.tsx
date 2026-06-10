@@ -277,7 +277,10 @@ export class CardContainer {
         try {
             const currentFile = this._currentQuestion?.note?.file?.tfile;
             if (currentFile) {
-                await this._refreshCurrentCardFromNote(currentFile, false);
+                const refreshed = await this._refreshCurrentCardFromNote(currentFile, false);
+                if (!refreshed) {
+                    throw new Error("Current flashcard could not be matched by block ID");
+                }
             }
 
             await this.reviewSequencer.processReview(response);

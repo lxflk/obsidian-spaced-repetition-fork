@@ -12,7 +12,7 @@ import { createTestNoteQuestionParser } from "./sample-items";
 async function parseQuestions(noteText: string): Promise<Question[]> {
     const parser: NoteQuestionParser = createTestNoteQuestionParser(DEFAULT_SETTINGS);
     return await parser.createQuestionList(
-        new UnitTestSRFile(noteText),
+        new UnitTestSRFile(noteText, "matcher.md"),
         TextDirection.Ltr,
         TopicPath.emptyPath,
         true,
@@ -24,54 +24,72 @@ beforeAll(() => {
 });
 
 describe("findMatchingQuestion", () => {
-    test("matches by block identifier even when the question moved", async () => {
+    test("matches by a unique block identifier when the question moved and changed text", async () => {
         const originalQuestions = await parseQuestions(`#flashcards
-Q1::A1
-Q2::A2 ^question-two
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-one
+
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-two
 `);
         const refreshedQuestions = await parseQuestions(`#flashcards
 Intro text
-Q1::A1
-Q2::A2 ^question-two
+
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-one
+
+===front===
+Q2 edited
+===back===
+A2 edited
+===end=== ^sr-two
 `);
 
         const match = findMatchingQuestion(refreshedQuestions, originalQuestions[1]);
 
-        expect(match?.lineNo).toBe(3);
-        expect(match?.questionText.obsidianBlockId).toBe("^question-two");
+        expect(match?.lineNo).toBe(9);
+        expect(match?.questionText.obsidianBlockId).toBe("^sr-two");
+        expect(match?.questionText.actualQuestion).toContain("Q2 edited");
     });
 
-    test("matches by question text hash when schedule formatting changes and the question moved", async () => {
-        const originalQuestions = await parseQuestions(`#flashcards
-Q1::A1
-Q2::A2
+    test("does not match without a current block identifier", async () => {
+        const questions = await parseQuestions(`#flashcards
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-one
 `);
-        const refreshedQuestions = await parseQuestions(`#flashcards
-Intro text
-Q1::A1
-Q2::A2
-<!--SR:!2023-09-03,1,230-->
-`);
+        questions[0].questionText.obsidianBlockId = null;
 
-        const match = findMatchingQuestion(refreshedQuestions, originalQuestions[1]);
-
-        expect(match?.lineNo).toBe(3);
-        expect(match?.questionText.actualQuestion).toBe("Q2::A2");
+        expect(findMatchingQuestion(questions, questions[0])).toBeNull();
     });
 
-    test("falls back to the line number when the question text changed in place", async () => {
-        const originalQuestions = await parseQuestions(`#flashcards
-Q1::A1
-Q2::A2
-`);
-        const refreshedQuestions = await parseQuestions(`#flashcards
-Q1::A1
-Q2 updated::A2
-`);
+    test("does not match duplicate refreshed block identifiers", async () => {
+        const questions = await parseQuestions(`#flashcards
+===front===
+Q1
+===back===
+A1
+===end=== ^sr-one
 
-        const match = findMatchingQuestion(refreshedQuestions, originalQuestions[1]);
+===front===
+Q2
+===back===
+A2
+===end=== ^sr-two
+`);
+        questions[1].questionText.obsidianBlockId = "^sr-one";
 
-        expect(match?.lineNo).toBe(2);
-        expect(match?.questionText.actualQuestion).toBe("Q2 updated::A2");
+        expect(findMatchingQuestion(questions, questions[0])).toBeNull();
     });
 });

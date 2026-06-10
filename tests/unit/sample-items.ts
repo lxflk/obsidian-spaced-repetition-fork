@@ -7,6 +7,7 @@ import { NoteQuestionParser } from "src/note/note-question-parser";
 import { DEFAULT_SETTINGS, SRSettings } from "src/settings";
 import { TextDirection } from "src/utils/strings";
 
+import { convertLegacyInlineCardsToBounded } from "./helpers/bounded-card-test-utils";
 import { UnitTestSRFile } from "./helpers/unit-test-file";
 
 export function createTestNoteQuestionParser(settings: SRSettings): NoteQuestionParser {
@@ -42,7 +43,7 @@ Q3::A3`;
         text: string,
         folderTopicPath: TopicPath = TopicPath.emptyPath,
     ): Promise<Deck> {
-        const file: UnitTestSRFile = new UnitTestSRFile(text);
+        const file: UnitTestSRFile = new UnitTestSRFile(convertLegacyInlineCardsToBounded(text));
         return await this.createDeckFromFile(file, folderTopicPath);
     }
 
@@ -67,6 +68,7 @@ Q3::A3`;
         file: UnitTestSRFile,
         folderTopicPath: TopicPath = TopicPath.emptyPath,
     ): Promise<Deck> {
+        file.content = convertLegacyInlineCardsToBounded(file.content);
         const deck: Deck = new Deck("Root", null);
         const noteParser: NoteParser = createTestNoteParser();
         const note: Note = await noteParser.parse(file, TextDirection.Ltr, folderTopicPath);

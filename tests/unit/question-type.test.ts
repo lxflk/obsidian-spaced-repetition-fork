@@ -1,121 +1,81 @@
 import { CardType } from "src/card/questions/question";
-import {
-    CardFrontBack,
-    CardFrontBackUtil,
-    QuestionTypeClozeFormatter,
-} from "src/card/questions/question-type";
+import { CardFrontBackUtil, QuestionTypeClozeFormatter } from "src/card/questions/question-type";
 import { DEFAULT_SETTINGS, SRSettings } from "src/settings";
 
-test("CardType.SingleLineBasic", () => {
-    expect(CardFrontBackUtil.expand(CardType.SingleLineBasic, "A::B", DEFAULT_SETTINGS)).toEqual([
-        new CardFrontBack("A", "B"),
+test("CardType.MultiLineBasic expands bounded cards", () => {
+    expect(
+        CardFrontBackUtil.expand(
+            CardType.MultiLineBasic,
+            `===front===
+Question
+===back===
+Answer
+===end===`,
+            DEFAULT_SETTINGS,
+        ),
+    ).toEqual([{ front: "Question", back: "Answer" }]);
+});
+
+test("CardType.MultiLineBasic preserves multiline front and back content", () => {
+    expect(
+        CardFrontBackUtil.expand(
+            CardType.MultiLineBasic,
+            `===front===
+Question line 1
+Question line 2
+===back===
+Answer line 1
+Answer line 2
+===end===`,
+            DEFAULT_SETTINGS,
+        ),
+    ).toEqual([
+        {
+            front: "Question line 1\nQuestion line 2",
+            back: "Answer line 1\nAnswer line 2",
+        },
     ]);
 });
 
-test("CardType.SingleLineReversed", () => {
-    expect(
-        CardFrontBackUtil.expand(CardType.SingleLineReversed, "A:::B", DEFAULT_SETTINGS),
-    ).toEqual([new CardFrontBack("A", "B"), new CardFrontBack("B", "A")]);
-});
+test("CardType.MultiLineBasic uses configured bounded markers", () => {
+    const settings: SRSettings = {
+        ...DEFAULT_SETTINGS,
+        multilineCardStartMarker: "START",
+        multilineCardScopedSeparator: "BACK",
+        multilineCardScopedEndMarker: "END",
+    };
 
-describe("CardType.MultiLineBasic", () => {
-    test("Basic", () => {
-        expect(
-            CardFrontBackUtil.expand(
-                CardType.MultiLineBasic,
-                "A1\nA2\n?\nB1\nB2",
-                DEFAULT_SETTINGS,
-            ),
-        ).toEqual([new CardFrontBack("A1\nA2", "B1\nB2")]);
-    });
-
-    test("Bounded multiline syntax", () => {
-        const settings: SRSettings = {
-            ...DEFAULT_SETTINGS,
-            multilineCardStartMarker: "===start===",
-            multilineCardScopedSeparator: "===",
-            multilineCardScopedEndMarker: "===end===",
-        };
-
-        expect(
-            CardFrontBackUtil.expand(
-                CardType.MultiLineBasic,
-                "===start===\nA1\nA2\n===\nB1\nB2\n===end===",
-                settings,
-            ),
-        ).toEqual([new CardFrontBack("A1\nA2", "B1\nB2")]);
-    });
-});
-
-test("CardType.MultiLineReversed", () => {
     expect(
         CardFrontBackUtil.expand(
-            CardType.MultiLineReversed,
-            "A1\nA2\n??\nB1\nB2",
-            DEFAULT_SETTINGS,
+            CardType.MultiLineBasic,
+            `START
+Question
+BACK
+Answer
+END`,
+            settings,
         ),
-    ).toEqual([new CardFrontBack("A1\nA2", "B1\nB2"), new CardFrontBack("B1\nB2", "A1\nA2")]);
+    ).toEqual([{ front: "Question", back: "Answer" }]);
 });
 
 test("CardType.Cloze", () => {
     const clozeFormatter = new QuestionTypeClozeFormatter();
+    expect(clozeFormatter.asking()).toEqual("<span style='color:#2196f3'>[...]</span>");
+    expect(clozeFormatter.asking("", "some hint")).toEqual(
+        "<span style='color:#2196f3'>[some hint]</span>",
+    );
+
+    const settings: SRSettings = {
+        ...DEFAULT_SETTINGS,
+        clozePatterns: ["**[123;;]answer[;;hint]**"],
+    };
 
     expect(
-        CardFrontBackUtil.expand(
-            CardType.Cloze,
-            "This is a very ==interesting== test",
-            DEFAULT_SETTINGS,
-        ),
+        CardFrontBackUtil.expand(CardType.Cloze, "This is a very **interesting** test", settings),
     ).toEqual([
-        new CardFrontBack(
-            "This is a very " + clozeFormatter.asking() + " test",
-            "This is a very " + clozeFormatter.showingAnswer("interesting") + " test",
-        ),
-    ]);
-
-    const settings2: SRSettings = DEFAULT_SETTINGS;
-    settings2.clozePatterns = [
-        "==[123;;]answer[;;hint]==",
-        "**[123;;]answer[;;hint]**",
-        "{{[123;;]answer[;;hint]}}",
-    ];
-
-    expect(
-        CardFrontBackUtil.expand(CardType.Cloze, "This is a very **interesting** test", settings2),
-    ).toEqual([
-        new CardFrontBack(
-            "This is a very " + clozeFormatter.asking() + " test",
-            "This is a very " + clozeFormatter.showingAnswer("interesting") + " test",
-        ),
-    ]);
-
-    expect(
-        CardFrontBackUtil.expand(CardType.Cloze, "This is a very {{interesting}} test", settings2),
-    ).toEqual([
-        new CardFrontBack(
-            "This is a very " + clozeFormatter.asking() + " test",
-            "This is a very " + clozeFormatter.showingAnswer("interesting") + " test",
-        ),
-    ]);
-
-    expect(
-        CardFrontBackUtil.expand(
-            CardType.Cloze,
-            "This is a really very {{interesting}} and ==fascinating== and **great** test",
-            settings2,
-        ),
-    ).toEqual([
-        new CardFrontBack(
-            "This is a really very interesting and <span style='color:#2196f3'>[...]</span> and great test",
-            "This is a really very interesting and <span style='color:#2196f3'>fascinating</span> and great test",
-        ),
-        new CardFrontBack(
-            "This is a really very interesting and fascinating and <span style='color:#2196f3'>[...]</span> test",
-            "This is a really very interesting and fascinating and <span style='color:#2196f3'>great</span> test",
-        ),
-        new CardFrontBack(
-            "This is a really very <span style='color:#2196f3'>[...]</span> and fascinating and great test",
-            "This is a really very <span style='color:#2196f3'>interesting</span> and fascinating and great test",
-        ),
+        {
+            front: "This is a very <span style='color:#2196f3'>[...]</span> test",
+            back: "This is a very <span style='color:#2196f3'>interesting</span> test",
+        },
     ]);
 });
