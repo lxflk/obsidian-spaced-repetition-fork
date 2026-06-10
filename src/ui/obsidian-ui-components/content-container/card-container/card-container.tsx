@@ -274,8 +274,20 @@ export class CardContainer {
         }
         this.lastPressed = timeNow;
 
-        await this.reviewSequencer.processReview(response);
-        await this._showNextCard();
+        try {
+            const currentFile = this._currentQuestion?.note?.file?.tfile;
+            if (currentFile) {
+                await this._refreshCurrentCardFromNote(currentFile, false);
+            }
+
+            await this.reviewSequencer.processReview(response);
+            await this._showNextCard();
+        } catch (error) {
+            console.error("SR: Failed to save flashcard review response", error);
+            new Notice(
+                "Could not save the flashcard review. Reload the review view and try again.",
+            );
+        }
     }
 
     private async _showNextCard(): Promise<void> {
@@ -340,14 +352,17 @@ export class CardContainer {
         }
     }
 
-    private async _refreshCurrentCardFromNote(file: TFile): Promise<void> {
+    private async _refreshCurrentCardFromNote(
+        file: TFile,
+        refreshView: boolean = true,
+    ): Promise<boolean> {
         if (!this.isActive || this._currentQuestion?.note?.filePath !== file.path) {
-            return;
+            return false;
         }
 
         if (this.isRefreshingCurrentNote) {
             this.shouldRefreshCurrentNoteAgain = true;
-            return;
+            return false;
         }
 
         this.isRefreshingCurrentNote = true;
@@ -356,7 +371,7 @@ export class CardContainer {
             const currentQuestion = this._currentQuestion;
             const currentCard = this._currentCard;
             if (!currentQuestion || !currentCard) {
-                return;
+                return false;
             }
 
             const refreshedNote = await this.plugin.loadNote(file);
@@ -367,7 +382,7 @@ export class CardContainer {
             const refreshedCard = refreshedQuestion?.cards[currentCard.cardIdx];
 
             if (!refreshedQuestion || !refreshedCard) {
-                return;
+                return false;
             }
 
             this._applyRefreshedCurrentCard(
@@ -376,7 +391,10 @@ export class CardContainer {
                 refreshedQuestion,
                 refreshedCard,
             );
-            await this.refresh(true);
+            if (refreshView) {
+                await this.refresh(true);
+            }
+            return true;
         } finally {
             this.isRefreshingCurrentNote = false;
 

@@ -62,8 +62,20 @@ export class StoreInNotes implements IDataStore {
 
     async questionWrite(question: Question): Promise<void> {
         const fileText: string = await question.note.file.read();
+        const originalText: string = question.questionText.original;
+        const replacementText: string = question.formatForNote(this.settings);
 
         const newText: string = question.updateQuestionWithinNoteText(fileText, this.settings);
+        if (
+            newText === fileText &&
+            originalText !== replacementText &&
+            !fileText.includes(replacementText)
+        ) {
+            throw new Error(
+                `Unable to update flashcard schedule because the source text was not found in ${question.note.filePath}`,
+            );
+        }
+
         await question.note.file.write(newText);
         question.hasChanged = false;
     }
