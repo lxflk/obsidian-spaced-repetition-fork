@@ -1,5 +1,8 @@
+import { RepItemScheduleInfoOsr } from "src/algorithms/osr/rep-item-schedule-info-osr";
 import { CardType, Question } from "src/card/questions/question";
+import { DataStore } from "src/data-stores/base/data-store";
 import { TopicPath } from "src/deck/topic-path";
+import { Note } from "src/note/note";
 import { NoteQuestionParser } from "src/note/note-question-parser";
 import { DEFAULT_SETTINGS } from "src/settings";
 import { setupStaticDateProvider20230906 } from "src/utils/dates";
@@ -124,6 +127,40 @@ A2
         expect(questions[1].questionText.obsidianBlockId).toMatch(/^\^sr-[a-f0-9]+$/);
         expect(questions[1].questionText.obsidianBlockId).not.toBe("^sr-duplicate");
         expect(questions[1].hasChanged).toBe(true);
+    });
+
+    test("keeps generated IDs stable when an earlier bounded card gets a schedule", async () => {
+        const file = new UnitTestSRFile(
+            `#flashcards/test
+===front===
+Q1
+===back===
+A1
+===end===
+
+===front===
+Q2
+===back===
+A2
+===end===
+`,
+            "stable-generated-ids.md",
+        );
+        const questions = await parseQuestions(file.content, file.path);
+        const note = new Note(file, questions);
+        questions[0].note = note;
+        const secondQuestionBlockId = questions[1].questionText.obsidianBlockId;
+
+        questions[0].cards[0].scheduleInfo = RepItemScheduleInfoOsr.fromDueDateStr(
+            "2023-09-10",
+            4,
+            270,
+        );
+        await DataStore.getInstance().questionWriteSchedule(questions[0]);
+
+        const reparsedQuestions = await parseQuestions(file.content, file.path);
+
+        expect(reparsedQuestions[1].questionText.obsidianBlockId).toBe(secondQuestionBlockId);
     });
 
     test("does not parse removed manual syntaxes", async () => {

@@ -309,16 +309,19 @@ export class CardContainer {
         }
     }
 
-    private async _showNextCard(avoidQuestionBlockId?: string): Promise<void> {
-        await this._reloadAllCardsForCurrentDeck(avoidQuestionBlockId);
+    private async _showNextCard(): Promise<void> {
+        if (this._currentCard !== null && this._currentCard !== undefined) {
+            await this.refresh();
+        } else {
+            this.backToDeck(false);
+        }
     }
 
     // #region -> Controls
 
     private async _skipCurrentCard(): Promise<void> {
-        const skippedQuestionBlockId = this._currentQuestion?.questionText?.obsidianBlockId;
         this.reviewSequencer.skipCurrentCard();
-        await this._showNextCard(skippedQuestionBlockId);
+        await this._showNextCard();
     }
 
     private async _reloadAllCardsForCurrentDeck(avoidQuestionBlockId?: string): Promise<void> {

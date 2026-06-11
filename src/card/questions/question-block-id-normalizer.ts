@@ -30,7 +30,6 @@ function generateBlockId(question: Question, notePath: string, usedBlockIds: Set
     while (true) {
         const hashInput = [
             notePath,
-            question.lineNo,
             question.questionText.actualQuestion,
             question.questionText.original,
             attempt,
