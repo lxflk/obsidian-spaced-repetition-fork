@@ -14,6 +14,7 @@ import type SRPlugin from "src/main";
 import { SRSettings } from "src/settings";
 import ModalCloseButtonComponent from "src/ui/obsidian-ui-components/content-container/modal-close-button";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
+import SRButtonComponent from "src/ui/sr-button";
 import EmulatedPlatform from "src/utils/platform-detector";
 
 export class DeckContainer {
@@ -24,7 +25,7 @@ export class DeckContainer {
     public containerEl: HTMLDivElement;
     public header: HTMLDivElement;
     public titleWrapper: HTMLDivElement;
-    public dummyButtonEl: ButtonComponent;
+    public refreshButton: SRButtonComponent;
     public title: HTMLDivElement;
     public closeButton: ButtonComponent;
 
@@ -38,6 +39,7 @@ export class DeckContainer {
     private reviewSequencer: IFlashcardReviewSequencer;
     private settings: SRSettings;
     private startReviewOfDeck: (deck: Deck) => void;
+    private reloadDecks: () => void;
     private closeModal: () => void | undefined;
 
     constructor(
@@ -46,6 +48,7 @@ export class DeckContainer {
         reviewSequencer: IFlashcardReviewSequencer,
         containerEl: HTMLDivElement,
         startReviewOfDeck: (deck: Deck) => void,
+        reloadDecks: () => void,
         closeModal?: () => void,
     ) {
         // Init properties
@@ -54,6 +57,7 @@ export class DeckContainer {
         this.reviewSequencer = reviewSequencer;
         this.containerEl = containerEl;
         this.startReviewOfDeck = startReviewOfDeck;
+        this.reloadDecks = reloadDecks;
         this.closeModal = closeModal;
 
         // Build ui
@@ -72,11 +76,17 @@ export class DeckContainer {
         this.titleWrapper = this.header.createDiv();
         this.titleWrapper.addClass("sr-title-wrapper");
 
-        this.dummyButtonEl = new ButtonComponent(this.titleWrapper)
-            .setIcon("circle-question-mark")
-            .setClass("sr-dummy-button")
-            .setClass("sr-hide-by-scaling")
-            .setClass("hide-height");
+        this.refreshButton = new SRButtonComponent(this.titleWrapper, {
+            classNames: [
+                "sr-refresh-button",
+                EmulatedPlatform().isPhone || Platform.isPhone ? "mod-raised" : "clickable-icon",
+            ],
+            icon: "refresh-cw",
+            tooltip: "Reload cards",
+            onClick: () => {
+                this.reloadDecks();
+            },
+        });
 
         this.titleWrapper.createDiv().addClass("sr-flex-spacer");
 
@@ -145,6 +155,10 @@ export class DeckContainer {
      */
     close() {
         this.hide();
+    }
+
+    setReviewSequencer(reviewSequencer: IFlashcardReviewSequencer): void {
+        this.reviewSequencer = reviewSequencer;
     }
 
     // -> Header

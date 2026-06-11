@@ -57,7 +57,8 @@ export class CardContainer {
     private reviewSequencer: IFlashcardReviewSequencer;
     private settings: SRSettings;
     private reviewMode: FlashcardReviewMode;
-    private backToDeck: () => void;
+    private backToDeck: (reload?: boolean) => void;
+    private reloadAllCards: () => Promise<void>;
     private editClickHandler: () => void;
     private closeModal: () => void | undefined;
     private sourceLeaf?: WorkspaceLeaf;
@@ -72,7 +73,8 @@ export class CardContainer {
         reviewSequencer: IFlashcardReviewSequencer,
         reviewMode: FlashcardReviewMode,
         view: HTMLDivElement,
-        backToDeck: () => void,
+        backToDeck: (reload?: boolean) => void,
+        reloadAllCards: () => Promise<void>,
         editClickHandler: () => void,
         closeModal?: () => void,
         sourceLeaf?: WorkspaceLeaf,
@@ -84,6 +86,7 @@ export class CardContainer {
         this.reviewSequencer = reviewSequencer;
         this.reviewMode = reviewMode;
         this.backToDeck = backToDeck;
+        this.reloadAllCards = reloadAllCards;
         this.editClickHandler = editClickHandler;
         this.view = view;
         this.chosenDeck = null;
@@ -112,6 +115,9 @@ export class CardContainer {
             () => this._displayCurrentCardInfoNotice(),
             () => this._skipCurrentCard(),
             this._jumpToCurrentCard.bind(this),
+            () => {
+                void this._reloadAllCardsForCurrentDeck();
+            },
             this.closeModal ? this.closeModal.bind(this) : undefined,
         );
 
@@ -196,6 +202,16 @@ export class CardContainer {
             this.noteRefreshTimeout = null;
         }
         document.removeEventListener("keydown", this._keydownHandler);
+    }
+
+    setReviewSequencer(
+        reviewSequencer: IFlashcardReviewSequencer,
+        reviewMode: FlashcardReviewMode,
+    ): void {
+        this.reviewSequencer = reviewSequencer;
+        this.reviewMode = reviewMode;
+        this.previousDeck = null;
+        this.currentDeck = null;
     }
 
     /**
@@ -293,16 +309,73 @@ export class CardContainer {
         }
     }
 
-    private async _showNextCard(): Promise<void> {
-        if (this._currentCard !== null && this._currentCard !== undefined) await this.refresh();
-        else this.backToDeck();
+    private async _showNextCard(avoidQuestionBlockId?: string): Promise<void> {
+        await this._reloadAllCardsForCurrentDeck(avoidQuestionBlockId);
     }
 
     // #region -> Controls
 
     private async _skipCurrentCard(): Promise<void> {
+        const skippedQuestionBlockId = this._currentQuestion?.questionText?.obsidianBlockId;
         this.reviewSequencer.skipCurrentCard();
-        await this._showNextCard();
+        await this._showNextCard(skippedQuestionBlockId);
+    }
+
+    private async _reloadAllCardsForCurrentDeck(avoidQuestionBlockId?: string): Promise<void> {
+        const deckTopicPath =
+            this.chosenDeck?.getTopicPath() ?? this.reviewSequencer.currentDeck?.getTopicPath();
+        const completedCardsInSession = this._getCompletedCardsInChosenDeck();
+        const completedDecksInSession = this._getCompletedDecksInChosenDeck();
+
+        await this.reloadAllCards();
+
+        const refreshedChosenDeck = deckTopicPath
+            ? this.reviewSequencer.originalDeckTree.getDeck(deckTopicPath)
+            : null;
+        if (!refreshedChosenDeck) {
+            this.chosenDeck = null;
+            this.backToDeck(false);
+            return;
+        }
+
+        this.chosenDeck = refreshedChosenDeck;
+        this.reviewSequencer.setCurrentDeck(deckTopicPath);
+
+        if (
+            avoidQuestionBlockId &&
+            this._currentQuestion?.questionText?.obsidianBlockId === avoidQuestionBlockId
+        ) {
+            this.reviewSequencer.skipCurrentCard();
+        }
+
+        const chosenDeckStats = this.reviewSequencer.getDeckStats(deckTopicPath);
+        this.totalCardsInSession = completedCardsInSession + chosenDeckStats.cardsInQueueCount;
+        this.totalDecksInSession =
+            completedDecksInSession + chosenDeckStats.decksInQueueOfThisDeckCount;
+
+        if (this._currentCard !== null && this._currentCard !== undefined) {
+            await this.refresh();
+        } else {
+            this.backToDeck(false);
+        }
+    }
+
+    private _getCompletedCardsInChosenDeck(): number {
+        if (!this.chosenDeck) {
+            return 0;
+        }
+
+        const currentStats = this.reviewSequencer.getDeckStats(this.chosenDeck.getTopicPath());
+        return Math.max(0, this.totalCardsInSession - currentStats.cardsInQueueCount);
+    }
+
+    private _getCompletedDecksInChosenDeck(): number {
+        if (!this.chosenDeck) {
+            return 0;
+        }
+
+        const currentStats = this.reviewSequencer.getDeckStats(this.chosenDeck.getTopicPath());
+        return Math.max(0, this.totalDecksInSession - currentStats.decksInQueueOfThisDeckCount);
     }
 
     private _displayCurrentCardInfoNotice() {

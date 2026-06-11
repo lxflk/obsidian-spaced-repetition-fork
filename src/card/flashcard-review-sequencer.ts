@@ -32,6 +32,11 @@ export interface IFlashcardReviewSequencer {
     updateCurrentQuestionText(text: string): Promise<void>;
 }
 
+export interface ReviewSequencerData {
+    reviewSequencer: IFlashcardReviewSequencer;
+    mode: FlashcardReviewMode;
+}
+
 /**
  * Represents statistics for a deck and its subdecks.
  *

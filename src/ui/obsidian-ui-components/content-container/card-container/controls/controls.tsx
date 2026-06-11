@@ -14,6 +14,7 @@ export default class ControlsComponent {
     public controls: HTMLDivElement;
     public backButton: BackButtonComponent;
     public jumpToCardButton: SRButtonComponent;
+    public refreshButton: SRButtonComponent;
     public modalCloseButton: ModalCloseButtonComponent;
     public resetButton: ResetButtonComponent;
     public skipButton: SkipButtonComponent;
@@ -29,9 +30,11 @@ export default class ControlsComponent {
         displayCurrentCardInfoNotice: () => void,
         skipCurrentCard: () => void,
         jumpToCurrentCard: () => Promise<void>,
+        refreshCards: () => void,
         closeModal?: () => void,
     ) {
         const jumpToCardTitle = "Jump to card"; // TODO: Translate
+        const refreshCardsTitle = "Reload cards"; // TODO: Translate
 
         this.controls = container.createDiv();
         this.controls.addClass("sr-controls");
@@ -53,6 +56,18 @@ export default class ControlsComponent {
             tooltip: jumpToCardTitle,
             onClick: () => {
                 jumpToCurrentCard();
+            },
+        });
+
+        this.refreshButton = new SRButtonComponent(this.controls, {
+            classNames: [
+                "sr-refresh-button",
+                ...(EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : []),
+            ],
+            icon: "refresh-cw",
+            tooltip: refreshCardsTitle,
+            onClick: () => {
+                refreshCards();
             },
         });
 

@@ -48,6 +48,8 @@ export default class TabViewManager {
                         );
                     }
 
+                    await this.plugin.sync();
+
                     const fullDeckTree: Deck = this.osrAppCore.reviewableDeckTree;
                     const remainingDeckTree: Deck =
                         this.chosenReviewModeForTabbedView === FlashcardReviewMode.Cram

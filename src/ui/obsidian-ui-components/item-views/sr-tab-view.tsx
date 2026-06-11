@@ -3,6 +3,7 @@ import { ButtonComponent, ItemView, Platform, WorkspaceLeaf } from "obsidian";
 import {
     FlashcardReviewMode,
     IFlashcardReviewSequencer,
+    ReviewSequencerData,
 } from "src/card/flashcard-review-sequencer";
 import { Question } from "src/card/questions/question";
 import { DEBUG_MODE_ENABLED, SR_TAB_VIEW } from "src/constants";
@@ -46,6 +47,7 @@ export class SRTabView extends ItemView {
     private openErrorCount: number = 0; // Counter for catching the first inevitable error but the letting the other through
     public backButton: ButtonComponent;
     private cardContainer: CardContainer;
+    private reloadReviewSequencerPromise: Promise<void> | null = null;
 
     constructor(
         leaf: WorkspaceLeaf,
@@ -160,6 +162,9 @@ export class SRTabView extends ItemView {
                     this.reviewSequencer,
                     this.viewContentEl.createDiv(),
                     this._startReviewOfDeck.bind(this),
+                    () => {
+                        void this._showDecksList();
+                    },
                 );
             }
 
@@ -172,6 +177,7 @@ export class SRTabView extends ItemView {
                     this.reviewMode,
                     this.viewContentEl.createDiv(),
                     this._showDecksList.bind(this),
+                    this._reloadReviewSequencer.bind(this),
                     this._doEditQuestionText.bind(this),
                     undefined,
                     this.leaf,
@@ -219,7 +225,7 @@ export class SRTabView extends ItemView {
             if (openImmediately || this.reviewMode === FlashcardReviewMode.Cram) {
                 this._showFlashcard(deckWithCards);
             } else {
-                this._showDecksList();
+                void this._showDecksList(false);
             }
         } catch (e) {
             /*
@@ -264,8 +270,11 @@ export class SRTabView extends ItemView {
         if (this.cardContainer) this.cardContainer.close();
     }
 
-    private _showDecksList(): void {
+    private async _showDecksList(reload: boolean = true): Promise<void> {
         this._hideFlashcard();
+        if (reload) {
+            await this._reloadReviewSequencer();
+        }
         this.deckContainer.show();
     }
 
@@ -284,12 +293,34 @@ export class SRTabView extends ItemView {
         this.cardContainer.hide();
     }
 
+    private async _reloadReviewSequencer(): Promise<void> {
+        if (this.reloadReviewSequencerPromise) {
+            await this.reloadReviewSequencerPromise;
+            return;
+        }
+
+        this.reloadReviewSequencerPromise = this._doReloadReviewSequencer();
+        try {
+            await this.reloadReviewSequencerPromise;
+        } finally {
+            this.reloadReviewSequencerPromise = null;
+        }
+    }
+
+    private async _doReloadReviewSequencer(): Promise<void> {
+        const loadedData: ReviewSequencerData = await this.loadReviewSequencerData();
+        this.reviewSequencer = loadedData.reviewSequencer;
+        this.reviewMode = loadedData.mode;
+        this.deckContainer.setReviewSequencer(this.reviewSequencer);
+        this.cardContainer.setReviewSequencer(this.reviewSequencer, this.reviewMode);
+    }
+
     private _startReviewOfDeck(deck: Deck) {
         this.reviewSequencer.setCurrentDeck(deck.getTopicPath());
         if (this.reviewSequencer.hasCurrentCard) {
             this._showFlashcard(deck);
         } else {
-            this._showDecksList();
+            void this._showDecksList();
         }
     }
 

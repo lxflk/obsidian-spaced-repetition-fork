@@ -3,6 +3,7 @@ import { App, Modal, Platform } from "obsidian";
 import {
     FlashcardReviewMode,
     IFlashcardReviewSequencer as IFlashcardReviewSequencer,
+    ReviewSequencerData,
 } from "src/card/flashcard-review-sequencer";
 import { Question } from "src/card/questions/question";
 import { Deck } from "src/deck/deck";
@@ -29,6 +30,8 @@ export class SRModalView extends Modal {
     private reviewMode: FlashcardReviewMode;
     private deckContainer: DeckContainer;
     private cardContainer: CardContainer;
+    private loadReviewSequencerData: () => Promise<ReviewSequencerData>;
+    private reloadReviewSequencerPromise: Promise<void> | null = null;
 
     constructor(
         app: App,
@@ -36,6 +39,7 @@ export class SRModalView extends Modal {
         settings: SRSettings,
         reviewSequencer: IFlashcardReviewSequencer,
         reviewMode: FlashcardReviewMode,
+        loadReviewSequencerData: () => Promise<ReviewSequencerData>,
     ) {
         super(app);
 
@@ -44,6 +48,7 @@ export class SRModalView extends Modal {
         this.settings = settings;
         this.reviewSequencer = reviewSequencer;
         this.reviewMode = reviewMode;
+        this.loadReviewSequencerData = loadReviewSequencerData;
 
         // Setup base containers
         if (Platform.isMobile || EmulatedPlatform().isMobile) {
@@ -76,6 +81,9 @@ export class SRModalView extends Modal {
             this.reviewSequencer,
             this.contentEl.createDiv(),
             this._startReviewOfDeck.bind(this),
+            () => {
+                void this._showDecksList();
+            },
             this.close.bind(this),
         );
 
@@ -87,6 +95,7 @@ export class SRModalView extends Modal {
             this.reviewMode,
             this.contentEl.createDiv(),
             this._showDecksList.bind(this),
+            this._reloadReviewSequencer.bind(this),
             this._doEditQuestionText.bind(this),
             this.close.bind(this),
             this.app.workspace.activeLeaf ?? undefined,
@@ -136,7 +145,7 @@ export class SRModalView extends Modal {
         if (openImmediately) {
             this._showFlashcard(deckWithCards);
         } else {
-            this._showDecksList();
+            void this._showDecksList(false);
         }
     }
 
@@ -147,8 +156,11 @@ export class SRModalView extends Modal {
         this.cardContainer.close();
     }
 
-    private _showDecksList(): void {
+    private async _showDecksList(reload: boolean = true): Promise<void> {
         this._hideFlashcard();
+        if (reload) {
+            await this._reloadReviewSequencer();
+        }
         this.deckContainer.show();
     }
 
@@ -165,12 +177,34 @@ export class SRModalView extends Modal {
         this.cardContainer.hide();
     }
 
+    private async _reloadReviewSequencer(): Promise<void> {
+        if (this.reloadReviewSequencerPromise) {
+            await this.reloadReviewSequencerPromise;
+            return;
+        }
+
+        this.reloadReviewSequencerPromise = this._doReloadReviewSequencer();
+        try {
+            await this.reloadReviewSequencerPromise;
+        } finally {
+            this.reloadReviewSequencerPromise = null;
+        }
+    }
+
+    private async _doReloadReviewSequencer(): Promise<void> {
+        const loadedData = await this.loadReviewSequencerData();
+        this.reviewSequencer = loadedData.reviewSequencer;
+        this.reviewMode = loadedData.mode;
+        this.deckContainer.setReviewSequencer(this.reviewSequencer);
+        this.cardContainer.setReviewSequencer(this.reviewSequencer, this.reviewMode);
+    }
+
     private _startReviewOfDeck(deck: Deck) {
         this.reviewSequencer.setCurrentDeck(deck.getTopicPath());
         if (this.reviewSequencer.hasCurrentCard) {
             this._showFlashcard(deck);
         } else {
-            this._showDecksList();
+            void this._showDecksList();
         }
     }
 
