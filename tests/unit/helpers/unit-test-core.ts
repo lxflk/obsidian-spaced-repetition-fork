@@ -54,7 +54,10 @@ export class UnitTestOsrCore extends OsrCore {
         this.loadInit();
 
         const dir: string = path.join(__dirname, "..", "..", "vaults", vaultSubfolder);
-        const files: string[] = fs.readdirSync(dir).filter((f) => f !== ".obsidian");
+        const files: string[] = fs
+            .readdirSync(dir)
+            .filter((f) => f !== ".obsidian")
+            .sort((a, b) => path.join(dir, a).localeCompare(path.join(dir, b)));
 
         // Pass 1
         this.initializeFileMap(dir, files);

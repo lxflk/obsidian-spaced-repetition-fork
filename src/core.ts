@@ -263,7 +263,9 @@ export class OsrAppCore extends OsrCore {
         try {
             this.loadInit();
 
-            const notes: TFile[] = this.app.vault.getMarkdownFiles();
+            const notes: TFile[] = [...this.app.vault.getMarkdownFiles()].sort((a, b) =>
+                a.path.localeCompare(b.path),
+            );
             for (const noteFile of notes) {
                 if (SettingsUtil.isPathInNoteIgnoreFolder(this.settings, noteFile.path)) {
                     continue;
