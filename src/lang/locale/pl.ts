@@ -12,7 +12,6 @@ const pl: IBaseLocale = {
     TOTAL_CARDS: "Wszystkie karty",
     BACK: "Wstecz",
     SKIP: "Pomiń",
-    EDIT_CARD: "Edytuj kartę",
     RESET_CARD_PROGRESS: "Zresetuj postęp karty",
     HARD: "Trudne",
     GOOD: "Średnio Trudne",

@@ -11,7 +11,6 @@ const nl: IBaseLocale = {
     TOTAL_CARDS: "Totaal aantal kaarten",
     BACK: "Terug",
     SKIP: "Overslaan",
-    EDIT_CARD: "Kaart bewerken",
     RESET_CARD_PROGRESS: "Voortgang van kaart resetten",
     HARD: "Moeilijk",
     GOOD: "Goed",

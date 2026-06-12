@@ -11,7 +11,6 @@ const ja: IBaseLocale = {
     TOTAL_CARDS: "カード合計",
     BACK: "Back",
     SKIP: "Skip",
-    EDIT_CARD: "Edit Card",
     RESET_CARD_PROGRESS: "カードの進捗をリセット",
     HARD: "Hard",
     GOOD: "Good",

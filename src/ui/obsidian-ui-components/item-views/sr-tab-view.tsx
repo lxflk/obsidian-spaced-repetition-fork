@@ -5,14 +5,12 @@ import {
     IFlashcardReviewSequencer,
     ReviewSequencerData,
 } from "src/card/flashcard-review-sequencer";
-import { Question } from "src/card/questions/question";
 import { DEBUG_MODE_ENABLED, SR_TAB_VIEW } from "src/constants";
 import { Deck } from "src/deck/deck";
 import SRPlugin from "src/main";
 import { SRSettings } from "src/settings";
 import { CardContainer } from "src/ui/obsidian-ui-components/content-container/card-container/card-container";
 import { DeckContainer } from "src/ui/obsidian-ui-components/content-container/deck-container";
-import { FlashcardEditModal } from "src/ui/obsidian-ui-components/modals/edit-modal";
 import { globalDateProvider } from "src/utils/dates";
 import EmulatedPlatform from "src/utils/platform-detector";
 
@@ -178,7 +176,6 @@ export class SRTabView extends ItemView {
                     this.viewContentEl.createDiv(),
                     this._showDecksList.bind(this),
                     this._reloadReviewSequencer.bind(this),
-                    this._doEditQuestionText.bind(this),
                     undefined,
                     this.leaf,
                 );
@@ -322,23 +319,5 @@ export class SRTabView extends ItemView {
         } else {
             void this._showDecksList();
         }
-    }
-
-    private async _doEditQuestionText(): Promise<void> {
-        const currentQ: Question = this.reviewSequencer.currentQuestion;
-
-        // Just the question/answer text; without any preceding topic tag
-        const textPrompt = currentQ.questionText.actualQuestion;
-
-        const editModal = FlashcardEditModal.Prompt(
-            this.app,
-            textPrompt,
-            currentQ.questionText.textDirection,
-        );
-        editModal
-            .then(async (modifiedCardText) => {
-                this.reviewSequencer.updateCurrentQuestionText(modifiedCardText);
-            })
-            .catch((reason) => console.log(reason));
     }
 }

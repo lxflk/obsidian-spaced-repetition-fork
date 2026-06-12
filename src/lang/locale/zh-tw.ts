@@ -11,7 +11,6 @@ const zhTW: IBaseLocale = {
     TOTAL_CARDS: "全部卡片",
     BACK: "返回",
     SKIP: "略過",
-    EDIT_CARD: "編輯卡片",
     RESET_CARD_PROGRESS: "重置卡片",
     HARD: "較難",
     GOOD: "記得",

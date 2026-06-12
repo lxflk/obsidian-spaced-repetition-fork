@@ -15,7 +15,6 @@ const de: IBaseLocale = {
     TOTAL_CARDS: "Alle Karten",
     BACK: "Zurück",
     SKIP: "Überspringen",
-    EDIT_CARD: "Karte bearbeiten",
     RESET_CARD_PROGRESS: "Kartenfortschritt zurücksetzten",
     HARD: "Schwer",
     GOOD: "Gut",

@@ -11,7 +11,6 @@ const cz: IBaseLocale = {
     TOTAL_CARDS: "Kartiček celkem",
     BACK: "Back",
     SKIP: "Skip",
-    EDIT_CARD: "Edit Card",
     RESET_CARD_PROGRESS: "Vynulovat pokrok kartičky",
     HARD: "Těžké",
     GOOD: "Dobré",

@@ -11,7 +11,6 @@ const zhCN: IBaseLocale = {
     TOTAL_CARDS: "全部卡片",
     BACK: "返回",
     SKIP: "略过",
-    EDIT_CARD: "编辑卡片",
     RESET_CARD_PROGRESS: "重置卡片",
     HARD: "较难",
     GOOD: "记得",

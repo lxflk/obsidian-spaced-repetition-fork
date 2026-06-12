@@ -1,5 +1,6 @@
 import { ButtonComponent, setIcon } from "obsidian";
 
+import { Card } from "src/card/card";
 import { DeckStats } from "src/card/flashcard-review-sequencer";
 import { Question } from "src/card/questions/question";
 import { Deck } from "src/deck/deck";
@@ -20,6 +21,11 @@ export default class InfoSectionComponent {
     public chosenDeckCardCounterWrapper: HTMLDivElement;
     public chosenDeckCardCounter: HTMLDivElement;
     public chosenDeckCardCounterIcon: HTMLDivElement;
+
+    public chosenDeckBreakdown: HTMLDivElement;
+    public currentCardStatus: HTMLDivElement;
+    public chosenDeckDueCounter: HTMLDivElement;
+    public chosenDeckNewCounter: HTMLDivElement;
 
     public chosenDeckSubDeckCounterWrapper: HTMLDivElement;
     public chosenDeckSubDeckCounter: HTMLDivElement;
@@ -77,6 +83,18 @@ export default class InfoSectionComponent {
         this.chosenDeckCardCounterIcon = this.chosenDeckCardCounterWrapper.createDiv();
         this.chosenDeckCardCounterIcon.addClass("sr-chosen-deck-card-counter-icon");
         setIcon(this.chosenDeckCardCounterIcon, "credit-card");
+
+        this.chosenDeckBreakdown = this.chosenDeckCounterWrapper.createDiv();
+        this.chosenDeckBreakdown.addClass("sr-chosen-deck-breakdown");
+
+        this.currentCardStatus = this.chosenDeckBreakdown.createDiv();
+        this.currentCardStatus.addClass("sr-current-card-status");
+
+        this.chosenDeckDueCounter = this.chosenDeckBreakdown.createDiv();
+        this.chosenDeckDueCounter.addClass("sr-remaining-card-count");
+
+        this.chosenDeckNewCounter = this.chosenDeckBreakdown.createDiv();
+        this.chosenDeckNewCounter.addClass("sr-remaining-card-count");
 
         this.chosenDeckSubDeckCounterWrapper = this.chosenDeckCounterWrapper.createDiv();
         this.chosenDeckSubDeckCounterWrapper.addClass("sr-is-hidden");
@@ -137,6 +155,7 @@ export default class InfoSectionComponent {
         deckStats: DeckStats,
         totalCardsInSession: number,
         totalDecksInSession: number,
+        currentCard: Card,
     ) {
         const chosenDeckStats = deckStats;
 
@@ -144,6 +163,9 @@ export default class InfoSectionComponent {
         this.chosenDeckCardCounter.setText(
             `${totalCardsInSession - chosenDeckStats.cardsInQueueCount}/${totalCardsInSession}`,
         );
+        this.updateCurrentCardStatus(currentCard);
+        this.chosenDeckDueCounter.setText(`${chosenDeckStats.dueCount} due`);
+        this.chosenDeckNewCounter.setText(`${chosenDeckStats.newCount} new`);
 
         if (chosenDeck.subdecks.length === 0) {
             if (!this.chosenDeckSubDeckCounterWrapper.hasClass("sr-is-hidden")) {
@@ -202,6 +224,14 @@ export default class InfoSectionComponent {
         this.cardContext.setText(
             ` ${this._formatQuestionContextText(currentQuestion.questionContext, currentNote)}`,
         );
+    }
+
+    private updateCurrentCardStatus(currentCard: Card): void {
+        const isNewCard = currentCard?.isNew;
+        this.currentCardStatus.setText(isNewCard ? "New card" : "Due card");
+        this.currentCardStatus.removeClass("is-new");
+        this.currentCardStatus.removeClass("is-due");
+        this.currentCardStatus.addClass(isNewCard ? "is-new" : "is-due");
     }
 
     private _formatQuestionContextText(questionContext: string[], currentNote: Note): string {

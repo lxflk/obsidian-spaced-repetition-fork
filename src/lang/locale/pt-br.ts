@@ -13,7 +13,6 @@ const ptBR: IBaseLocale = {
     TOTAL_CARDS: "Total de Cartas",
     BACK: "Voltar",
     SKIP: "Pular",
-    EDIT_CARD: "Editar Cartão",
     RESET_CARD_PROGRESS: "Reiniciar o Progresso da Carta",
     HARD: "Difícil",
     GOOD: "OK",

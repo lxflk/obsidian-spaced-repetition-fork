@@ -12,7 +12,6 @@ const ko: IBaseLocale = {
     TOTAL_CARDS: "전체 카드들",
     BACK: "Back",
     SKIP: "Skip",
-    EDIT_CARD: "Edit Card",
     RESET_CARD_PROGRESS: "카드의 진행상황을 초기화합니다.",
     HARD: "어려움(Hard)",
     GOOD: "좋음(Good)",

@@ -1,4 +1,4 @@
-/* ../../../../../tmp/tmp-157794-Cc1d58Uwfh9B/obsidian-spaced-repetition/src/ui/styles.css */
+/* ../../../../../tmp/tmp-47185-FQMnNirS42o9/obsidian-spaced-repetition/src/ui/styles.css */
 .sr-bg-blue,
 .sr-bg-yellow,
 .sr-bg-green,
@@ -312,6 +312,49 @@
           }
         }
       }
+      & .sr-chosen-deck-breakdown {
+        display: flex;
+        align-items: center;
+        gap: var(--size-4-2);
+        color: var(--text-faint);
+        font-size: var(--font-ui-smaller);
+        font-weight: 600;
+      }
+      & .sr-current-card-status {
+        --sr-current-card-status-color: var(--text-faint);
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45ch;
+        min-height: 1.4em;
+        padding: 0 0.55ch;
+        border: 1px solid var(--background-modifier-border);
+        border-radius: 999px;
+        background-color: var(--background-modifier-hover);
+        color: var(--text-muted);
+        &::before {
+          content: "";
+          width: 0.45em;
+          height: 0.45em;
+          border-radius: 50%;
+          background-color: var(--sr-current-card-status-color);
+        }
+        &.is-due {
+          --sr-current-card-status-color: hsl(122, 39%, 54%);
+        }
+        &.is-new {
+          --sr-current-card-status-color: hsl(207, 90%, 62%);
+        }
+      }
+      & .sr-remaining-card-count {
+        display: inline-flex;
+        align-items: center;
+        min-height: 1.4em;
+      }
+      & .sr-remaining-card-count + .sr-remaining-card-count::before {
+        content: "\b7";
+        margin-right: var(--size-4-2);
+        color: var(--text-faint);
+      }
     }
   }
   & .sr-context {
@@ -485,36 +528,6 @@ body:not(.is-mobile) .sr-response-button.sr-good-button::after {
 }
 body:not(.is-mobile) .sr-response-button.sr-easy-button::after {
   content: "3";
-}
-.sr-edit-modal {
-  height: 80%;
-}
-.sr-edit-view {
-  height: 100%;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  gap: var(--size-4-4);
-}
-.sr-edit-view .sr-input {
-  flex-grow: 1;
-  width: 100%;
-  resize: none;
-}
-.sr-edit-view .sr-response {
-  display: grid;
-  grid-template-columns: auto auto auto;
-  width: 100%;
-  margin-top: 0;
-}
-.sr-edit-view .sr-response-button {
-  width: 100%;
-}
-.sr-edit-view .sr-response-button.sr-dummy-button {
-  opacity: 0;
-  cursor: default;
 }
 .sr-confirmation-modal-header {
   text-align: start;

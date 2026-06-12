@@ -59,7 +59,6 @@ export class CardContainer {
     private reviewMode: FlashcardReviewMode;
     private backToDeck: (reload?: boolean) => void;
     private reloadAllCards: () => Promise<void>;
-    private editClickHandler: () => void;
     private closeModal: () => void | undefined;
     private sourceLeaf?: WorkspaceLeaf;
     private noteRefreshTimeout: number | null = null;
@@ -75,7 +74,6 @@ export class CardContainer {
         view: HTMLDivElement,
         backToDeck: (reload?: boolean) => void,
         reloadAllCards: () => Promise<void>,
-        editClickHandler: () => void,
         closeModal?: () => void,
         sourceLeaf?: WorkspaceLeaf,
     ) {
@@ -87,7 +85,6 @@ export class CardContainer {
         this.reviewMode = reviewMode;
         this.backToDeck = backToDeck;
         this.reloadAllCards = reloadAllCards;
-        this.editClickHandler = editClickHandler;
         this.view = view;
         this.chosenDeck = null;
         this.closeModal = closeModal;
@@ -110,7 +107,6 @@ export class CardContainer {
             !this.settings.openViewInNewTab,
             this.app,
             () => this.backToDeck(),
-            () => this.editClickHandler(),
             async (response: ReviewResponse) => await this._processReview(response),
             () => this._displayCurrentCardInfoNotice(),
             () => this._skipCurrentCard(),
@@ -523,6 +519,7 @@ export class CardContainer {
             chosenDeckStats,
             this.totalCardsInSession,
             this.totalDecksInSession,
+            this._currentCard,
         );
         this.infoSection.updateCurrentDeckInfo(
             chosenDeck,

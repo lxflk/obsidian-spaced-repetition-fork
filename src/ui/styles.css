@@ -110,6 +110,7 @@
 /* MARK: Modal */
 
 #sr-modal-view {
+
     & .modal-close-button,
     & .modal-header {
         display: none;
@@ -135,11 +136,9 @@
     padding-top: 0 !important;
     padding-right: var(--view-padding) !important;
     padding-left: var(--view-padding) !important;
-    padding-bottom: max(
-        var(--view-padding),
-        var(--bottom-statusbar-clearance),
-        var(--safe-area-inset-bottom)
-    ) !important;
+    padding-bottom: max(var(--view-padding),
+            var(--bottom-statusbar-clearance),
+            var(--safe-area-inset-bottom)) !important;
 }
 
 .sr-tab-view-content.sr-center-view {
@@ -225,18 +224,18 @@
             color: #ffffff;
             padding: var(--size-4-1);
 
-            & > *:first-child {
+            &>*:first-child {
                 min-width: 10ch;
             }
 
-            & > *:last-child {
+            &>*:last-child {
                 min-width: 3ch;
                 text-align: right;
             }
         }
     }
 
-    & > hr {
+    &>hr {
         margin: 2px 0px;
     }
 
@@ -393,6 +392,57 @@
                     }
                 }
             }
+
+            & .sr-chosen-deck-breakdown {
+                display: flex;
+                align-items: center;
+                gap: var(--size-4-2);
+                color: var(--text-faint);
+                font-size: var(--font-ui-smaller);
+                font-weight: 600;
+            }
+
+            & .sr-current-card-status {
+                --sr-current-card-status-color: var(--text-faint);
+
+                display: inline-flex;
+                align-items: center;
+                gap: 0.45ch;
+                min-height: 1.4em;
+                padding: 0 0.55ch;
+                border: 1px solid var(--background-modifier-border);
+                border-radius: 999px;
+                background-color: var(--background-modifier-hover);
+                color: var(--text-muted);
+
+                &::before {
+                    content: "";
+                    width: 0.45em;
+                    height: 0.45em;
+                    border-radius: 50%;
+                    background-color: var(--sr-current-card-status-color);
+                }
+
+                &.is-due {
+                    --sr-current-card-status-color: hsl(122, 39%, 54%);
+                }
+
+                &.is-new {
+                    --sr-current-card-status-color: hsl(207, 90%, 62%);
+                }
+            }
+
+            & .sr-remaining-card-count {
+                display: inline-flex;
+                align-items: center;
+                min-height: 1.4em;
+            }
+
+            & .sr-remaining-card-count+.sr-remaining-card-count::before {
+                content: "\00b7";
+                margin-right: var(--size-4-2);
+                color: var(--text-faint);
+            }
         }
     }
 
@@ -424,8 +474,8 @@
         margin-top: 0;
     }
 
-    & .sr-content > ul,
-    & .sr-content > ol {
+    & .sr-content>ul,
+    & .sr-content>ol {
         padding-left: var(--size-4-6);
     }
 
@@ -454,8 +504,8 @@
             justify-content: center;
             gap: var(--size-4-2);
 
-            & > *:first-child,
-            & > *:last-child {
+            &>*:first-child,
+            &>*:last-child {
                 display: none;
             }
 
@@ -470,8 +520,8 @@
             display: inline-flex;
         }
 
-        & .sr-chosen-deck-info > *,
-        & .sr-current-deck-info > * {
+        & .sr-chosen-deck-info>*,
+        & .sr-current-deck-info>* {
             font-size: medium;
         }
 
@@ -482,6 +532,7 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 650px) {
+
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 15ch;
@@ -489,6 +540,7 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 550px) {
+
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 10ch;
@@ -509,6 +561,7 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 440px) {
+
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 8ch;
@@ -516,6 +569,7 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 410px) {
+
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 6ch;
@@ -606,44 +660,6 @@ body:not(.is-mobile) .sr-response-button.sr-easy-button::after {
     content: "3";
 }
 
-/* MARK: EditModal */
-
-.sr-edit-modal {
-    height: 80%;
-}
-
-.sr-edit-view {
-    height: 100%;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    gap: var(--size-4-4);
-}
-
-.sr-edit-view .sr-input {
-    flex-grow: 1;
-    width: 100%;
-    resize: none;
-}
-
-.sr-edit-view .sr-response {
-    display: grid;
-    grid-template-columns: auto auto auto;
-    width: 100%;
-    margin-top: 0;
-}
-
-.sr-edit-view .sr-response-button {
-    width: 100%;
-}
-
-.sr-edit-view .sr-response-button.sr-dummy-button {
-    opacity: 0;
-    cursor: default;
-}
-
 /* MARK: Confirmation Modal */
 
 .sr-confirmation-modal-header {
@@ -658,7 +674,7 @@ body:not(.is-mobile) .sr-response-button.sr-easy-button::after {
     flex-direction: column;
     gap: var(--size-4-4);
 
-    .tree-item.mod-root > .tree-item-children {
+    .tree-item.mod-root>.tree-item-children {
         padding-inline-start: 0;
         margin-inline-start: 0;
         border-inline-start: none;
@@ -855,9 +871,9 @@ body:not(.is-phone) .sr-settings-page-content {
     gap: var(--size-4-4);
 }
 
-.sr-setting-override > .setting-item-name,
-.sr-setting-override > .setting-item-control,
-.sr-setting-override > .setting-item-info {
+.sr-setting-override>.setting-item-name,
+.sr-setting-override>.setting-item-control,
+.sr-setting-override>.setting-item-info {
     display: none;
 }
 
@@ -1229,13 +1245,11 @@ th.gridjs-th:last-child {
 
 .gridjs-loading-bar:after {
     animation: shimmer 2s infinite;
-    background-image: linear-gradient(
-        90deg,
-        hsla(0, 0%, 80%, 0),
-        hsla(0, 0%, 80%, 0.2) 20%,
-        hsla(0, 0%, 80%, 0.5) 60%,
-        hsla(0, 0%, 80%, 0)
-    );
+    background-image: linear-gradient(90deg,
+            hsla(0, 0%, 80%, 0),
+            hsla(0, 0%, 80%, 0.2) 20%,
+            hsla(0, 0%, 80%, 0.5) 60%,
+            hsla(0, 0%, 80%, 0));
     content: "";
     transform: translateX(-100%);
 }

@@ -20,7 +20,6 @@ const ru: IBaseLocale = {
     TOTAL_CARDS: "Всего карточек",
     BACK: "Назад",
     SKIP: "Пропустить",
-    EDIT_CARD: "Редактировать карточку",
     RESET_CARD_PROGRESS: "Сбросить прогресс карточки",
     HARD: "Сложно",
     GOOD: "Нормально",

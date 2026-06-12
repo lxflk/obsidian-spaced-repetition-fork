@@ -15,7 +15,6 @@ const uk: IBaseLocale = {
     TOTAL_CARDS: "Усього карток",
     BACK: "Назад",
     SKIP: "Пропустити",
-    EDIT_CARD: "Редагувати картку",
     RESET_CARD_PROGRESS: "Скинути прогрес картки",
     HARD: "Важко",
     GOOD: "Добре",

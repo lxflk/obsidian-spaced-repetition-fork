@@ -12,7 +12,6 @@ const tr: IBaseLocale = {
     TOTAL_CARDS: "Toplam Kartlar",
     BACK: "Geri",
     SKIP: "Atla",
-    EDIT_CARD: "Kartı Düzenle",
     RESET_CARD_PROGRESS: "Kartın ilerlemesini sıfırla",
     HARD: "Zor",
     GOOD: "Orta",

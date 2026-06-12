@@ -1,9 +1,8 @@
-import { App, Menu, Platform } from "obsidian";
+import { App, Platform } from "obsidian";
 
 import { ReviewResponse } from "src/algorithms/base/repetition-item";
-import { t } from "src/lang/helpers";
 import BackButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/back-button";
-import MenuDotsButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/menu-dots-button";
+import CardInfoButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/card-info-button";
 import ResetButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/reset-button";
 import SkipButtonComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/skip-button";
 import ModalCloseButtonComponent from "src/ui/obsidian-ui-components/content-container/modal-close-button";
@@ -18,14 +17,13 @@ export default class ControlsComponent {
     public modalCloseButton: ModalCloseButtonComponent;
     public resetButton: ResetButtonComponent;
     public skipButton: SkipButtonComponent;
-    public menuDotsButton: MenuDotsButtonComponent;
+    public cardInfoButton: CardInfoButtonComponent;
 
     constructor(
         container: HTMLElement,
         isModal: boolean,
         app: App,
         backToDeck: () => void,
-        editClickHandler: () => void,
         processReview: (response: ReviewResponse) => Promise<void>,
         displayCurrentCardInfoNotice: () => void,
         skipCurrentCard: () => void,
@@ -49,7 +47,7 @@ export default class ControlsComponent {
 
         this.jumpToCardButton = new SRButtonComponent(this.controls, {
             classNames: [
-                "sr-edit-button",
+                "sr-jump-to-card-button",
                 ...(EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : []),
             ],
             icon: "arrow-up-right",
@@ -71,28 +69,9 @@ export default class ControlsComponent {
             },
         });
 
-        this.menuDotsButton = new MenuDotsButtonComponent(
+        this.cardInfoButton = new CardInfoButtonComponent(
             this.controls,
-            (evt: MouseEvent) => {
-                const cardMenu = new Menu();
-
-                cardMenu.addItem((item) => {
-                    item.setTitle(t("EDIT_CARD"))
-                        .setIcon("edit")
-                        .onClick(() => {
-                            editClickHandler();
-                        });
-                });
-                cardMenu.addItem((item) => {
-                    item.setTitle(t("VIEW_CARD_INFO"))
-                        .setIcon("info")
-                        .onClick(() => {
-                            displayCurrentCardInfoNotice();
-                        });
-                });
-
-                cardMenu.showAtMouseEvent(evt);
-            },
+            () => displayCurrentCardInfoNotice(),
             EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : undefined,
         );
 
