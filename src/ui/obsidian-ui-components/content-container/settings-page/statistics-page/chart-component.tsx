@@ -37,8 +37,10 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
         this.summaryEl = this.containerEl.createDiv();
         this.summaryEl.id = summaryId;
 
-        const style = getComputedStyle(document.body);
-        const textColor = style.getPropertyValue("--text-normal");
+        const style = this.containerEl.ownerDocument.defaultView?.getComputedStyle(
+            this.containerEl.ownerDocument.body,
+        );
+        const textColor = style?.getPropertyValue("--text-normal") ?? "";
 
         let scales = {};
         let backgroundColor = ["#2196f3"];
@@ -66,7 +68,7 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
 
         const shouldFilter = canvasId === "forecastChart" || canvasId === "intervalsChart";
 
-        const statsChart = new Chart(document.getElementById(canvasId) as HTMLCanvasElement, {
+        const statsChart = new Chart(this.canvasEl, {
             type,
             data: {
                 labels: shouldFilter ? labels.slice(0, 31) : labels,
@@ -113,8 +115,10 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
         });
 
         if (shouldFilter) {
-            const chartPeriodEl = document.getElementById("sr-chart-period") as HTMLSelectElement;
-            chartPeriodEl.addEventListener("change", () => {
+            const chartPeriodEl = this.containerEl
+                .closest(".sr-statistics-page")
+                ?.querySelector<HTMLSelectElement>("#sr-chart-period");
+            chartPeriodEl?.addEventListener("change", () => {
                 let filteredLabels, filteredData;
                 const chartPeriod = chartPeriodEl.value;
                 if (chartPeriod === "month") {
@@ -142,9 +146,8 @@ export default class ChartComponent extends SettingsItemOverrideComponent {
             });
         }
 
-        document.getElementById(`${canvasId}Summary`).innerText = summary;
-        document.getElementById(`${canvasId}Summary`).style.textAlign =
-            canvasId === "cardTypesChart" ? "right" : "center";
+        this.summaryEl.innerText = summary;
+        this.summaryEl.style.textAlign = canvasId === "cardTypesChart" ? "right" : "center";
 
         this.chart = statsChart;
     }
