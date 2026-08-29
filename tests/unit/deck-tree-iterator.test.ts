@@ -1,3 +1,4 @@
+import { Card } from "src/card/card";
 import { CardListType, Deck } from "src/deck/deck";
 import { CardOrder, DeckOrder, DeckTreeIterator } from "src/deck/deck-tree-iterator";
 import { TopicPath } from "src/deck/topic-path";
@@ -671,6 +672,62 @@ describe("hasCurrentCard", () => {
 
         expect(iterator.nextCard()).toEqual(true);
         expect(iterator.hasCurrentCard).toEqual(true);
+    });
+});
+
+describe("selectCard", () => {
+    test("selects a card in a subdeck without discarding the current card", async () => {
+        const text: string = `#flashcards
+Q1::A1
+
+#flashcards/science
+Q2::A2
+
+#flashcards/math
+Q3::A3`;
+        const deck: Deck = await SampleItemDecks.createDeckFromText(text, TopicPath.emptyPath);
+        const iterator = new DeckTreeIterator(
+            {
+                cardOrder: CardOrder.NewFirstSequential,
+                deckOrder: DeckOrder.PrevDeckComplete_Sequential,
+            },
+            deck,
+        );
+        iterator.setIteratorTopicPath(TopicPath.getTopicPathFromTag("#flashcards"));
+
+        nextCardThenCheck(iterator, "Q1");
+
+        const selectedCard = deck.getDeckByTopicTag("#flashcards/math").newFlashcards[0];
+        expect(iterator.selectCard(selectedCard)).toEqual(true);
+        expect(iterator.currentCard.front).toEqual("Q3");
+
+        // Removing the selected card restarts normal iteration, so the card that was showing
+        // before the jump is still available.
+        expect(iterator.deleteCurrentCardFromAllDecks()).toEqual(true);
+        expect(iterator.currentCard.front).toEqual("Q1");
+        expect(iterator.deleteCurrentCardFromAllDecks()).toEqual(true);
+        expect(iterator.currentCard.front).toEqual("Q2");
+        expect(iterator.deleteCurrentCardFromAllDecks()).toEqual(false);
+    });
+
+    test("does not change the current card when the requested card is not queued", async () => {
+        const deck: Deck = await SampleItemDecks.createDeckFromText(
+            "#flashcards Q1::A1",
+            TopicPath.emptyPath,
+        );
+        const iterator = new DeckTreeIterator(
+            {
+                cardOrder: CardOrder.NewFirstSequential,
+                deckOrder: DeckOrder.PrevDeckComplete_Sequential,
+            },
+            deck,
+        );
+        iterator.setIteratorTopicPath(TopicPath.getTopicPathFromTag("#flashcards"));
+        nextCardThenCheck(iterator, "Q1");
+
+        const missingCard = new Card({ front: "Q2" });
+        expect(iterator.selectCard(missingCard)).toEqual(false);
+        expect(iterator.currentCard.front).toEqual("Q1");
     });
 });
 

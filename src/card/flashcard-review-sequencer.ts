@@ -26,6 +26,8 @@ export interface IFlashcardReviewSequencer {
     setCurrentDeck(topicPath: TopicPath): void;
     getDeckStats(topicPath: TopicPath): DeckStats;
     getSubDecksWithCardsInQueue(deck: Deck): Deck[];
+    getCardsInQueue(): Card[];
+    selectCard(card: Card): boolean;
     skipCurrentCard(): void;
     determineCardSchedule(response: ReviewResponse, card: Card): RepItemScheduleInfo;
     processReview(response: ReviewResponse): Promise<void>;
@@ -248,6 +250,19 @@ export class FlashcardReviewSequencer implements IFlashcardReviewSequencer {
         });
 
         return subDecksWithCardsInQueue;
+    }
+
+    getCardsInQueue(): Card[] {
+        const selectedDeck = this.remainingDeckTree.getDeck(this.currentTopicPath);
+        if (!selectedDeck) {
+            return [];
+        }
+
+        return [...new Set(selectedDeck.getFlattenedCardArray(CardListType.All, true))];
+    }
+
+    selectCard(card: Card): boolean {
+        return this.cardSequencer.selectCard(card);
     }
 
     skipCurrentCard(): void {

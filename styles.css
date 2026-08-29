@@ -1,4 +1,4 @@
-/* ../../../../../tmp/tmp-47185-FQMnNirS42o9/obsidian-spaced-repetition/src/ui/styles.css */
+/* ../../../../../tmp/tmp-154733-NTCkvsZ3kiVt/obsidian-spaced-repetition-fork/src/ui/styles.css */
 .sr-bg-blue,
 .sr-bg-yellow,
 .sr-bg-green,
@@ -226,6 +226,21 @@
 @media only screen and (orientation: landscape) {
   .is-phone .sr-deck-container .sr-header .sr-button {
     padding: 0;
+  }
+}
+.sr-card-search-modal {
+  & .sr-card-search-suggestion-front {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  & .sr-card-search-suggestion-note {
+    color: var(--text-muted);
+    font-size: var(--font-ui-smaller);
+    margin-top: var(--size-4-1);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 .sr-card-container {

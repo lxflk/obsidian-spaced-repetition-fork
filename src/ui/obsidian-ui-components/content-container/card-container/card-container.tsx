@@ -18,6 +18,7 @@ import CardInfoNotice from "src/ui/obsidian-ui-components/content-container/card
 import ControlsComponent from "src/ui/obsidian-ui-components/content-container/card-container/controls/controls";
 import InfoSection from "src/ui/obsidian-ui-components/content-container/card-container/deck-info/info-section";
 import ResponseSectionComponent from "src/ui/obsidian-ui-components/content-container/card-container/response-section/response-section";
+import { CardSearchModal } from "src/ui/obsidian-ui-components/modals/card-search-modal";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
 import { getOrCreateSideBySideLeaf, openMarkdownFileInLeaf } from "src/ui/workspace-window-utils";
 import EmulatedPlatform from "src/utils/platform-detector";
@@ -110,6 +111,7 @@ export class CardContainer {
             async (response: ReviewResponse) => await this._processReview(response),
             () => this._displayCurrentCardInfoNotice(),
             () => this._skipCurrentCard(),
+            () => this._openCardSearch(),
             this._jumpToCurrentCard.bind(this),
             () => {
                 void this._reloadAllCardsForCurrentDeck();
@@ -318,6 +320,19 @@ export class CardContainer {
     private async _skipCurrentCard(): Promise<void> {
         this.reviewSequencer.skipCurrentCard();
         await this._showNextCard();
+    }
+
+    private _openCardSearch(): void {
+        const cards = this.reviewSequencer.getCardsInQueue();
+        const modal = new CardSearchModal(this.app, cards, (card) => {
+            if (!this.reviewSequencer.selectCard(card)) {
+                new Notice("That card is no longer in the review queue.");
+                return;
+            }
+
+            void this.refresh();
+        });
+        modal.open();
     }
 
     private async _reloadAllCardsForCurrentDeck(avoidQuestionBlockId?: string): Promise<void> {
@@ -634,6 +649,10 @@ export class CardContainer {
         };
 
         switch (e.code) {
+            case "Slash":
+                this._openCardSearch();
+                consumeKeyEvent();
+                break;
             case "KeyS":
                 this._skipCurrentCard();
                 consumeKeyEvent();

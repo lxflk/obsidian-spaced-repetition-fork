@@ -13,6 +13,7 @@ export default class ControlsComponent {
     public controls: HTMLDivElement;
     public backButton: BackButtonComponent;
     public jumpToCardButton: SRButtonComponent;
+    public searchCardsButton: SRButtonComponent;
     public refreshButton: SRButtonComponent;
     public modalCloseButton: ModalCloseButtonComponent;
     public resetButton: ResetButtonComponent;
@@ -27,11 +28,13 @@ export default class ControlsComponent {
         processReview: (response: ReviewResponse) => Promise<void>,
         displayCurrentCardInfoNotice: () => void,
         skipCurrentCard: () => void,
+        searchCards: () => void,
         jumpToCurrentCard: () => Promise<void>,
         refreshCards: () => void,
         closeModal?: () => void,
     ) {
         const jumpToCardTitle = "Jump to card"; // TODO: Translate
+        const searchCardsTitle = "Choose next card (/)"; // TODO: Translate
         const refreshCardsTitle = "Reload cards"; // TODO: Translate
 
         this.controls = container.createDiv();
@@ -54,6 +57,18 @@ export default class ControlsComponent {
             tooltip: jumpToCardTitle,
             onClick: () => {
                 jumpToCurrentCard();
+            },
+        });
+
+        this.searchCardsButton = new SRButtonComponent(this.controls, {
+            classNames: [
+                "sr-search-cards-button",
+                ...(EmulatedPlatform().isPhone || Platform.isPhone ? ["mod-raised"] : []),
+            ],
+            icon: "search",
+            tooltip: searchCardsTitle,
+            onClick: () => {
+                searchCards();
             },
         });
 

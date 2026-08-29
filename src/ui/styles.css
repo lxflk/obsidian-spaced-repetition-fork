@@ -294,6 +294,23 @@
 
 /* MARK: Card Container */
 
+.sr-card-search-modal {
+    & .sr-card-search-suggestion-front {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    & .sr-card-search-suggestion-note {
+        color: var(--text-muted);
+        font-size: var(--font-ui-smaller);
+        margin-top: var(--size-4-1);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
 .sr-card-container {
     & .sr-controls {
         display: flex;

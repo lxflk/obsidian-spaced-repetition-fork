@@ -34,6 +34,7 @@ export interface IDeckTreeIterator {
     deleteCurrentCardFromAllDecks(): boolean;
     deleteCurrentQuestionFromAllDecks(): boolean;
     moveCurrentCardToEndOfList(): void;
+    selectCard(card: Card): boolean;
     nextCard(): boolean;
 }
 
@@ -80,6 +81,22 @@ class SingleDeckIterator {
             index = cardIndex - this.deck.newFlashcards.length;
         }
         this.setCardListType(cardListType, index);
+    }
+
+    selectCard(card: Card): boolean {
+        const newCardIdx = this.deck.newFlashcards.indexOf(card);
+        if (newCardIdx !== -1) {
+            this.setCardListType(CardListType.NewCard, newCardIdx);
+            return true;
+        }
+
+        const dueCardIdx = this.deck.dueFlashcards.indexOf(card);
+        if (dueCardIdx !== -1) {
+            this.setCardListType(CardListType.DueCard, dueCardIdx);
+            return true;
+        }
+
+        return false;
     }
 
     private setCardListType(cardListType?: CardListType, cardIdx: number = null): void {
@@ -206,6 +223,7 @@ export class DeckTreeIterator implements IDeckTreeIterator {
     // Each item is treated as a single deck, i.e. any subdecks are ignored
     private deckArray: Deck[];
     private deckIdx?: number;
+    private restartDeckIterationOnNextCard: boolean = false;
 
     private weightedRandomNumber: WeightedRandomNumber;
 
@@ -250,12 +268,14 @@ export class DeckTreeIterator implements IDeckTreeIterator {
 
     setBaseDeck(baseDeck: Deck): void {
         this.baseDeckTree = baseDeck;
+        this.restartDeckIterationOnNextCard = false;
         this.singleDeckIterator.setNoCurrentCard();
     }
 
     setIteratorTopicPath(topicPath: TopicPath): void {
         const iteratorDeck: Deck = this.baseDeckTree.getDeck(topicPath);
         this.deckArray = DeckTreeIterator.filterForDecksWithCards(iteratorDeck.toDeckArray());
+        this.restartDeckIterationOnNextCard = false;
         this.setDeckIdx(null);
     }
 
@@ -285,6 +305,11 @@ export class DeckTreeIterator implements IDeckTreeIterator {
             this.baseDeckTree.deleteCardFromAllDecks(this.currentCard, true);
         }
 
+        if (this.restartDeckIterationOnNextCard) {
+            this.setDeckIdx(null);
+            this.restartDeckIterationOnNextCard = false;
+        }
+
         if (this.iteratorOrder.cardOrder === CardOrder.EveryCardRandomDeckAndCard) {
             result = this.nextCardEveryCardRandomDeck();
         } else {
@@ -303,6 +328,20 @@ export class DeckTreeIterator implements IDeckTreeIterator {
         }
         if (!result) this.deckIdx = null;
         return result;
+    }
+
+    selectCard(card: Card): boolean {
+        for (let deckIdx = 0; deckIdx < this.deckArray.length; deckIdx++) {
+            const deck = this.deckArray[deckIdx];
+            if (deck.newFlashcards.includes(card) || deck.dueFlashcards.includes(card)) {
+                this.setDeckIdx(deckIdx);
+                this.singleDeckIterator.selectCard(card);
+                this.restartDeckIterationOnNextCard = true;
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private chooseNextDeck(firstTime: boolean): void {

@@ -320,6 +320,33 @@ Q3::A3`;
     });
 });
 
+describe("card selection", () => {
+    test("lists distinct queued cards in the selected deck and reviews a selected card next", async () => {
+        const c: TestContext = await setupSample1(FlashcardReviewMode.Review, DEFAULT_SETTINGS);
+        c.reviewSequencer.setCurrentDeck(TopicPath.getTopicPathFromTag("#flashcards"));
+
+        const cards = c.reviewSequencer.getCardsInQueue();
+        expect(cards.map((card) => card.front)).toEqual(["Q1", "Q3", "Q2", "Q4", "Q5", "Q6"]);
+
+        const selectedCard = cards.find((card) => card.front === "Q5");
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
+        expect(c.reviewSequencer.selectCard(selectedCard)).toEqual(true);
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q5");
+
+        await c.reviewSequencer.processReview(ReviewResponse.Good);
+
+        expect(c.reviewSequencer.currentCard.front).toEqual("Q2");
+        expect(c.reviewSequencer.getCardsInQueue()).not.toContain(selectedCard);
+    });
+
+    test("does not expose cards outside the selected deck", async () => {
+        const c: TestContext = await setupSample1(FlashcardReviewMode.Review, DEFAULT_SETTINGS);
+        c.reviewSequencer.setCurrentDeck(TopicPath.getTopicPathFromTag("#flashcards/science"));
+
+        expect(c.reviewSequencer.getCardsInQueue().map((card) => card.front)).toEqual(["Q4", "Q5"]);
+    });
+});
+
 describe("skipCurrentCard", () => {
     test("Simple test", async () => {
         const c: TestContext = await setupSample1(FlashcardReviewMode.Review, DEFAULT_SETTINGS);
