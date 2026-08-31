@@ -32,9 +32,11 @@ import { NoteFileLoader } from "src/note/note-file-loader";
 import { NoteReviewQueue } from "src/note/note-review-queue";
 import { setDebugParser } from "src/parser";
 import { DEFAULT_DATA, PluginData } from "src/plugin-data";
+import { addCardReview, normalizeReviewHistory } from "src/review-history";
 import { DEFAULT_SETTINGS, SettingsUtil, SRSettings, upgradeSettings } from "src/settings";
 import { REVIEW_QUEUE_VIEW_TYPE } from "src/ui/obsidian-ui-components/item-views/review-queue-list-view";
 import { UIManager } from "src/ui/ui-manager";
+import { globalDateProvider } from "src/utils/dates";
 import { convertToStringOrEmpty, TextDirection } from "src/utils/strings";
 
 export default class SRPlugin extends Plugin {
@@ -318,6 +320,7 @@ export default class SRPlugin extends Plugin {
         if (loadedData?.settings) upgradeSettings(loadedData.settings);
         this.data = Object.assign({}, DEFAULT_DATA, loadedData);
         this.data.settings = Object.assign({}, DEFAULT_SETTINGS, this.data.settings);
+        this.data.reviewHistory = normalizeReviewHistory(this.data.reviewHistory);
         setDebugParser(this.data.settings.showParserDebugMessages);
 
         this.setupDataStoreAndAlgorithmInstances(this.data.settings);
@@ -331,5 +334,12 @@ export default class SRPlugin extends Plugin {
     }
     async savePluginData(): Promise<void> {
         await this.saveData(this.data);
+    }
+
+    async recordFlashcardReview(deckTopicPath: TopicPath): Promise<void> {
+        const date = globalDateProvider.today.format("YYYY-MM-DD");
+        const deck = deckTopicPath.hasPath ? deckTopicPath.path.join("/") : "Uncategorized";
+        addCardReview(this.data.reviewHistory, date, deck);
+        await this.savePluginData();
     }
 }

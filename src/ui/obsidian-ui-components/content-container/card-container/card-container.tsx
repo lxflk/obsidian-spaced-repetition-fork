@@ -10,6 +10,7 @@ import {
 import { CardType, Question } from "src/card/questions/question";
 import { findMatchingQuestion } from "src/card/questions/question-matcher";
 import { Deck } from "src/deck/deck";
+import { TopicPath } from "src/deck/topic-path";
 import { escapeHtml } from "src/escape-html";
 import type SRPlugin from "src/main";
 import { Note } from "src/note/note";
@@ -289,6 +290,9 @@ export class CardContainer {
         this.lastPressed = timeNow;
 
         try {
+            const reviewedDeckPath: TopicPath = this.reviewSequencer.currentDeck
+                .getTopicPath()
+                .clone();
             const currentFile = this._currentQuestion?.note?.file?.tfile;
             if (currentFile) {
                 const refreshed = await this._refreshCurrentCardFromNote(currentFile, false);
@@ -298,6 +302,13 @@ export class CardContainer {
             }
 
             await this.reviewSequencer.processReview(response);
+            if (response !== ReviewResponse.Reset) {
+                try {
+                    await this.plugin.recordFlashcardReview(reviewedDeckPath);
+                } catch (error) {
+                    console.error("SR: Failed to save flashcard review activity", error);
+                }
+            }
             await this._showNextCard();
         } catch (error) {
             console.error("SR: Failed to save flashcard review response", error);

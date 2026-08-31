@@ -1,3 +1,4 @@
+import { ReviewHistory } from "src/review-history";
 import { DEFAULT_SETTINGS, SRSettings } from "src/settings";
 
 export interface PluginData {
@@ -8,6 +9,7 @@ export interface PluginData {
     // which covers most of the cases
     buryList: string[];
     historyDeck: string | null;
+    reviewHistory: ReviewHistory;
 }
 
 export const DEFAULT_DATA: PluginData = {
@@ -15,4 +17,5 @@ export const DEFAULT_DATA: PluginData = {
     buryDate: "",
     buryList: [],
     historyDeck: null,
+    reviewHistory: {},
 };

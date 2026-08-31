@@ -1,4 +1,5 @@
-import { ButtonComponent, Platform } from "obsidian";
+import { Moment } from "moment";
+import { ButtonComponent, Platform, setTooltip } from "obsidian";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import h from "vhtml";
 
@@ -11,11 +12,16 @@ import { Deck } from "src/deck/deck";
 import { TopicPath } from "src/deck/topic-path";
 import { t } from "src/lang/helpers";
 import type SRPlugin from "src/main";
+import { DeckReviewCounts, getReviewCount, getReviewLevel } from "src/review-history";
 import { SRSettings } from "src/settings";
 import ModalCloseButtonComponent from "src/ui/obsidian-ui-components/content-container/modal-close-button";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
 import SRButtonComponent from "src/ui/sr-button";
+import { globalDateProvider } from "src/utils/dates";
 import EmulatedPlatform from "src/utils/platform-detector";
+
+const ACTIVITY_WEEK_COUNT = 53;
+const DAYS_PER_WEEK = 7;
 
 export class DeckContainer {
     public plugin: SRPlugin;
@@ -133,6 +139,7 @@ export class DeckContainer {
         for (const deck of this.reviewSequencer.originalDeckTree.subdecks) {
             this._createTree(deck, this.content);
         }
+        this._createReviewActivity();
 
         if (this.containerEl.hasClass("sr-is-hidden")) {
             this.containerEl.removeClass("sr-is-hidden");
@@ -290,5 +297,107 @@ export class DeckContainer {
         ]);
 
         statsContainer.setText(statsNumber.toString());
+    }
+
+    private _createReviewActivity(): void {
+        const today = globalDateProvider.today;
+        const todayKey = today.format("YYYY-MM-DD");
+        const todayCount = getReviewCount(this.plugin.data.reviewHistory[todayKey]);
+        const startDate = today
+            .clone()
+            .day(0)
+            .subtract(ACTIVITY_WEEK_COUNT - 1, "weeks");
+        const dates = Array.from({ length: ACTIVITY_WEEK_COUNT * DAYS_PER_WEEK }, (_, index) =>
+            startDate.clone().add(index, "days"),
+        );
+        const maximumCount = dates.reduce((maximum, date) => {
+            if (date.isAfter(today, "day")) return maximum;
+            return Math.max(
+                maximum,
+                getReviewCount(this.plugin.data.reviewHistory[date.format("YYYY-MM-DD")]),
+            );
+        }, 0);
+
+        const activity = this.content.createDiv("sr-review-activity");
+        const summary = activity.createDiv("sr-review-activity-summary");
+        const todaySummary = summary.createDiv("sr-review-activity-today");
+        todaySummary.createDiv("sr-review-activity-today-count").setText(todayCount.toString());
+        todaySummary.createDiv("sr-review-activity-today-label").setText(t("CARDS_REVIEWED_TODAY"));
+        summary.createDiv("sr-review-activity-title").setText(t("REVIEW_ACTIVITY"));
+
+        const chartScroller = activity.createDiv("sr-review-activity-scroller");
+        const chart = chartScroller.createDiv("sr-review-activity-chart");
+        this._createActivityMonthLabels(chart, startDate);
+
+        const chartBody = chart.createDiv("sr-review-activity-chart-body");
+        const weekdayLabels = chartBody.createDiv("sr-review-activity-weekdays");
+        for (const label of ["", "Mon", "", "Wed", "", "Fri", ""]) {
+            weekdayLabels.createDiv().setText(label);
+        }
+
+        const grid = chartBody.createDiv("sr-review-activity-grid");
+        grid.setAttribute("role", "img");
+        grid.setAttribute(
+            "aria-label",
+            `${t("REVIEW_ACTIVITY")}: ${todayCount} ${t("CARDS_REVIEWED_TODAY")}`,
+        );
+
+        for (const date of dates) {
+            const cell = grid.createDiv("sr-review-activity-day");
+            if (date.isAfter(today, "day")) {
+                cell.addClass("is-future");
+                continue;
+            }
+
+            const deckCounts = this.plugin.data.reviewHistory[date.format("YYYY-MM-DD")];
+            const count = getReviewCount(deckCounts);
+            cell.addClass(`is-level-${getReviewLevel(count, maximumCount)}`);
+            const tooltip = this._formatActivityTooltip(date, deckCounts);
+            cell.setAttribute("aria-label", tooltip);
+            setTooltip(cell, tooltip, { placement: "top", delay: 50 });
+        }
+
+        const legend = activity.createDiv("sr-review-activity-legend");
+        legend.createSpan().setText(t("LESS"));
+        for (let level = 0; level <= 4; level++) {
+            legend.createSpan(`sr-review-activity-day is-level-${level}`);
+        }
+        legend.createSpan().setText(t("MORE"));
+    }
+
+    private _createActivityMonthLabels(chart: HTMLDivElement, startDate: Moment): void {
+        const monthRow = chart.createDiv("sr-review-activity-month-row");
+        monthRow.createDiv("sr-review-activity-month-spacer");
+        const months = monthRow.createDiv("sr-review-activity-months");
+
+        for (let week = 0; week < ACTIVITY_WEEK_COUNT; week++) {
+            const weekStart = startDate.clone().add(week, "weeks");
+            const firstOfMonth = Array.from({ length: DAYS_PER_WEEK }, (_, day) =>
+                weekStart.clone().add(day, "days"),
+            ).find((date) => date.date() === 1);
+
+            if (week === 0 || firstOfMonth) {
+                const labelDate = firstOfMonth ?? weekStart;
+                const label = months.createSpan();
+                label.setText(labelDate.format("MMM"));
+                label.style.left = `${week * 13}px`;
+            }
+        }
+    }
+
+    private _formatActivityTooltip(date: Moment, deckCounts?: DeckReviewCounts): string {
+        const count = getReviewCount(deckCounts);
+        const formattedDate = date.format("dddd, MMMM D, YYYY");
+        if (count === 0) {
+            return t("NO_CARDS_REVIEWED_ON", { date: formattedDate });
+        }
+
+        const breakdown = Object.entries(deckCounts ?? {})
+            .sort(([deckA, countA], [deckB, countB]) =>
+                countB === countA ? deckA.localeCompare(deckB) : countB - countA,
+            )
+            .map(([deck, deckCount]) => `${deck}: ${deckCount}`)
+            .join(" • ");
+        return `${t("CARDS_REVIEWED_ON", { count, date: formattedDate })} • ${breakdown}`;
     }
 }

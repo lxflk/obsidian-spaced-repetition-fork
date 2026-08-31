@@ -4,6 +4,12 @@ export interface IBaseLocale {
     DUE_CARDS: string;
     NEW_CARDS: string;
     TOTAL_CARDS: string;
+    REVIEW_ACTIVITY: string;
+    CARDS_REVIEWED_TODAY: string;
+    CARDS_REVIEWED_ON: string;
+    NO_CARDS_REVIEWED_ON: string;
+    LESS: string;
+    MORE: string;
     BACK: string;
     SKIP: string;
     RESET_CARD_PROGRESS: string;

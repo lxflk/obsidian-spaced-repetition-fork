@@ -110,7 +110,6 @@
 /* MARK: Modal */
 
 #sr-modal-view {
-
     & .modal-close-button,
     & .modal-header {
         display: none;
@@ -136,9 +135,11 @@
     padding-top: 0 !important;
     padding-right: var(--view-padding) !important;
     padding-left: var(--view-padding) !important;
-    padding-bottom: max(var(--view-padding),
-            var(--bottom-statusbar-clearance),
-            var(--safe-area-inset-bottom)) !important;
+    padding-bottom: max(
+        var(--view-padding),
+        var(--bottom-statusbar-clearance),
+        var(--safe-area-inset-bottom)
+    ) !important;
 }
 
 .sr-tab-view-content.sr-center-view {
@@ -224,18 +225,18 @@
             color: #ffffff;
             padding: var(--size-4-1);
 
-            &>*:first-child {
+            & > *:first-child {
                 min-width: 10ch;
             }
 
-            &>*:last-child {
+            & > *:last-child {
                 min-width: 3ch;
                 text-align: right;
             }
         }
     }
 
-    &>hr {
+    & > hr {
         margin: 2px 0px;
     }
 
@@ -277,6 +278,139 @@
         padding: var(--size-4-1);
         text-align: center;
         color: #ffffff !important;
+    }
+
+    & .sr-review-activity {
+        --sr-activity-cell-size: 10px;
+        --sr-activity-cell-gap: 3px;
+        border-top: 1px solid var(--background-modifier-border);
+        margin-top: var(--size-4-5);
+        padding: var(--size-4-4) var(--size-4-3) var(--size-4-2);
+    }
+
+    & .sr-review-activity-summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--size-4-4);
+        margin-bottom: var(--size-4-3);
+    }
+
+    & .sr-review-activity-today {
+        display: flex;
+        align-items: baseline;
+        gap: var(--size-4-2);
+    }
+
+    & .sr-review-activity-today-count {
+        color: var(--text-accent);
+        font-size: var(--font-ui-larger);
+        font-weight: var(--font-bold);
+        line-height: 1;
+    }
+
+    & .sr-review-activity-today-label,
+    & .sr-review-activity-title,
+    & .sr-review-activity-legend,
+    & .sr-review-activity-month-row,
+    & .sr-review-activity-weekdays {
+        color: var(--text-muted);
+        font-size: var(--font-ui-smaller);
+    }
+
+    & .sr-review-activity-title {
+        font-weight: var(--font-semibold);
+        text-align: right;
+    }
+
+    & .sr-review-activity-scroller {
+        overflow-x: auto;
+        padding-bottom: var(--size-4-1);
+    }
+
+    & .sr-review-activity-chart {
+        min-width: 715px;
+        width: max-content;
+    }
+
+    & .sr-review-activity-month-row,
+    & .sr-review-activity-chart-body {
+        display: flex;
+    }
+
+    & .sr-review-activity-month-row {
+        height: 18px;
+    }
+
+    & .sr-review-activity-month-spacer,
+    & .sr-review-activity-weekdays {
+        flex: 0 0 29px;
+    }
+
+    & .sr-review-activity-months {
+        position: relative;
+    }
+
+    & .sr-review-activity-months > span {
+        position: absolute;
+        white-space: nowrap;
+    }
+
+    & .sr-review-activity-weekdays {
+        display: grid;
+        grid-template-rows: repeat(7, var(--sr-activity-cell-size));
+        gap: var(--sr-activity-cell-gap);
+        line-height: var(--sr-activity-cell-size);
+    }
+
+    & .sr-review-activity-grid {
+        display: grid;
+        grid-auto-flow: column;
+        grid-auto-columns: var(--sr-activity-cell-size);
+        grid-template-rows: repeat(7, var(--sr-activity-cell-size));
+        gap: var(--sr-activity-cell-gap);
+    }
+
+    & .sr-review-activity-day {
+        background: var(--background-modifier-border);
+        border: 1px solid color-mix(in srgb, var(--background-modifier-border) 70%, transparent);
+        border-radius: 2px;
+        box-sizing: border-box;
+        height: var(--sr-activity-cell-size);
+        width: var(--sr-activity-cell-size);
+
+        &.is-level-1 {
+            background: color-mix(in srgb, var(--color-green) 30%, var(--background-primary));
+        }
+
+        &.is-level-2 {
+            background: color-mix(in srgb, var(--color-green) 52%, var(--background-primary));
+        }
+
+        &.is-level-3 {
+            background: color-mix(in srgb, var(--color-green) 74%, var(--background-primary));
+        }
+
+        &.is-level-4 {
+            background: var(--color-green);
+        }
+
+        &.is-future {
+            background: transparent;
+            border-color: transparent;
+        }
+    }
+
+    & .sr-review-activity-grid .sr-review-activity-day:not(.is-future) {
+        cursor: help;
+    }
+
+    & .sr-review-activity-legend {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: var(--sr-activity-cell-gap);
+        margin-top: var(--size-4-2);
     }
 }
 
@@ -455,7 +589,7 @@
                 min-height: 1.4em;
             }
 
-            & .sr-remaining-card-count+.sr-remaining-card-count::before {
+            & .sr-remaining-card-count + .sr-remaining-card-count::before {
                 content: "\00b7";
                 margin-right: var(--size-4-2);
                 color: var(--text-faint);
@@ -491,8 +625,8 @@
         margin-top: 0;
     }
 
-    & .sr-content>ul,
-    & .sr-content>ol {
+    & .sr-content > ul,
+    & .sr-content > ol {
         padding-left: var(--size-4-6);
     }
 
@@ -521,8 +655,8 @@
             justify-content: center;
             gap: var(--size-4-2);
 
-            &>*:first-child,
-            &>*:last-child {
+            & > *:first-child,
+            & > *:last-child {
                 display: none;
             }
 
@@ -537,8 +671,8 @@
             display: inline-flex;
         }
 
-        & .sr-chosen-deck-info>*,
-        & .sr-current-deck-info>* {
+        & .sr-chosen-deck-info > *,
+        & .sr-current-deck-info > * {
             font-size: medium;
         }
 
@@ -549,7 +683,6 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 650px) {
-
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 15ch;
@@ -557,7 +690,6 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 550px) {
-
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 10ch;
@@ -578,7 +710,6 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 440px) {
-
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 8ch;
@@ -586,7 +717,6 @@
 }
 
 @media only screen and (orientation: portrait) and (max-width: 410px) {
-
     .is-phone .sr-chosen-deck-name,
     .is-phone .sr-current-deck-name {
         max-width: 6ch;
@@ -691,7 +821,7 @@ body:not(.is-mobile) .sr-response-button.sr-easy-button::after {
     flex-direction: column;
     gap: var(--size-4-4);
 
-    .tree-item.mod-root>.tree-item-children {
+    .tree-item.mod-root > .tree-item-children {
         padding-inline-start: 0;
         margin-inline-start: 0;
         border-inline-start: none;
@@ -888,9 +1018,9 @@ body:not(.is-phone) .sr-settings-page-content {
     gap: var(--size-4-4);
 }
 
-.sr-setting-override>.setting-item-name,
-.sr-setting-override>.setting-item-control,
-.sr-setting-override>.setting-item-info {
+.sr-setting-override > .setting-item-name,
+.sr-setting-override > .setting-item-control,
+.sr-setting-override > .setting-item-info {
     display: none;
 }
 
@@ -1262,11 +1392,13 @@ th.gridjs-th:last-child {
 
 .gridjs-loading-bar:after {
     animation: shimmer 2s infinite;
-    background-image: linear-gradient(90deg,
-            hsla(0, 0%, 80%, 0),
-            hsla(0, 0%, 80%, 0.2) 20%,
-            hsla(0, 0%, 80%, 0.5) 60%,
-            hsla(0, 0%, 80%, 0));
+    background-image: linear-gradient(
+        90deg,
+        hsla(0, 0%, 80%, 0),
+        hsla(0, 0%, 80%, 0.2) 20%,
+        hsla(0, 0%, 80%, 0.5) 60%,
+        hsla(0, 0%, 80%, 0)
+    );
     content: "";
     transform: translateX(-100%);
 }
