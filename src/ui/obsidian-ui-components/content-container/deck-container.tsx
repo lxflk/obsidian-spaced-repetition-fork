@@ -12,7 +12,12 @@ import { Deck } from "src/deck/deck";
 import { TopicPath } from "src/deck/topic-path";
 import { t } from "src/lang/helpers";
 import type SRPlugin from "src/main";
-import { DeckReviewCounts, getReviewCount, getReviewLevel } from "src/review-history";
+import {
+    DeckReviewCounts,
+    getReviewCount,
+    getReviewLevel,
+    getSortedDeckReviewCounts,
+} from "src/review-history";
 import { SRSettings } from "src/settings";
 import ModalCloseButtonComponent from "src/ui/obsidian-ui-components/content-container/modal-close-button";
 import { FlashcardMode } from "src/ui/obsidian-ui-components/modals/sr-modal-view";
@@ -302,7 +307,8 @@ export class DeckContainer {
     private _createReviewActivity(): void {
         const today = globalDateProvider.today;
         const todayKey = today.format("YYYY-MM-DD");
-        const todayCount = getReviewCount(this.plugin.data.reviewHistory[todayKey]);
+        const todayDeckCounts = this.plugin.data.reviewHistory[todayKey];
+        const todayCount = getReviewCount(todayDeckCounts);
         const startDate = today
             .clone()
             .day(0)
@@ -321,8 +327,22 @@ export class DeckContainer {
         const activity = this.content.createDiv("sr-review-activity");
         const summary = activity.createDiv("sr-review-activity-summary");
         const todaySummary = summary.createDiv("sr-review-activity-today");
-        todaySummary.createDiv("sr-review-activity-today-count").setText(todayCount.toString());
-        todaySummary.createDiv("sr-review-activity-today-label").setText(t("CARDS_REVIEWED_TODAY"));
+        const todayTotal = todaySummary.createDiv("sr-review-activity-today-total");
+        todayTotal.createDiv("sr-review-activity-today-count").setText(todayCount.toString());
+        todayTotal.createDiv("sr-review-activity-today-label").setText(t("CARDS_REVIEWED_TODAY"));
+
+        const todayDecks = getSortedDeckReviewCounts(todayDeckCounts);
+        if (todayDecks.length > 0) {
+            const breakdown = todaySummary.createDiv("sr-review-activity-today-decks");
+            for (const [deck, count] of todayDecks) {
+                const deckSummary = breakdown.createDiv("sr-review-activity-today-deck");
+                deckSummary.setAttribute("aria-label", `${deck}: ${count}`);
+                deckSummary.createSpan("sr-review-activity-today-deck-name").setText(deck);
+                deckSummary
+                    .createSpan("sr-review-activity-today-deck-count")
+                    .setText(count.toString());
+            }
+        }
         summary.createDiv("sr-review-activity-title").setText(t("REVIEW_ACTIVITY"));
 
         const chartScroller = activity.createDiv("sr-review-activity-scroller");
@@ -392,10 +412,7 @@ export class DeckContainer {
             return t("NO_CARDS_REVIEWED_ON", { date: formattedDate });
         }
 
-        const breakdown = Object.entries(deckCounts ?? {})
-            .sort(([deckA, countA], [deckB, countB]) =>
-                countB === countA ? deckA.localeCompare(deckB) : countB - countA,
-            )
+        const breakdown = getSortedDeckReviewCounts(deckCounts)
             .map(([deck, deckCount]) => `${deck}: ${deckCount}`)
             .join(" • ");
         return `${t("CARDS_REVIEWED_ON", { count, date: formattedDate })} • ${breakdown}`;

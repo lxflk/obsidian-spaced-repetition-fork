@@ -45,6 +45,14 @@ export function getReviewCount(deckCounts: DeckReviewCounts | undefined): number
     return Object.values(deckCounts ?? {}).reduce((total, count) => total + count, 0);
 }
 
+export function getSortedDeckReviewCounts(
+    deckCounts: DeckReviewCounts | undefined,
+): Array<[string, number]> {
+    return Object.entries(deckCounts ?? {}).sort(([deckA, countA], [deckB, countB]) =>
+        countB === countA ? deckA.localeCompare(deckB) : countB - countA,
+    );
+}
+
 export function getReviewLevel(count: number, maximumCount: number): number {
     if (count <= 0 || maximumCount <= 0) {
         return 0;

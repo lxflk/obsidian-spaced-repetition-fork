@@ -2,6 +2,7 @@ import {
     addCardReview,
     getReviewCount,
     getReviewLevel,
+    getSortedDeckReviewCounts,
     normalizeReviewHistory,
     ReviewHistory,
 } from "src/review-history";
@@ -41,5 +42,20 @@ describe("review history", () => {
         expect(getReviewLevel(6, 20)).toBe(2);
         expect(getReviewLevel(11, 20)).toBe(3);
         expect(getReviewLevel(20, 20)).toBe(4);
+    });
+
+    test("sorts the deck breakdown by review count and then deck name", () => {
+        expect(
+            getSortedDeckReviewCounts({
+                sql: 2,
+                probability: 3,
+                pandas: 2,
+            }),
+        ).toEqual([
+            ["probability", 3],
+            ["pandas", 2],
+            ["sql", 2],
+        ]);
+        expect(getSortedDeckReviewCounts(undefined)).toEqual([]);
     });
 });
