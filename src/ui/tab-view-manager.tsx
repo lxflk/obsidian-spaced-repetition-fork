@@ -68,6 +68,11 @@ export default class TabViewManager {
     // Add any needed resourced
     constructor(plugin: SRPlugin) {
         this.plugin = plugin;
+        // Restored workspace views are created without going through openSRTabView().
+        // Give them a complete, useful default state so a pinned flashcard tab can
+        // rebuild the normal review overview when Obsidian starts.
+        this.osrAppCore = plugin.osrAppCore;
+        this.chosenReviewModeForTabbedView = FlashcardReviewMode.Review;
         this.shouldOpenSingeNoteTabView = false;
 
         this.registerAllTabViews();

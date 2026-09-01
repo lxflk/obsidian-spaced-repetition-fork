@@ -50,11 +50,10 @@ export class UIManager {
         this.plugin = plugin;
         appIcon();
 
-        // Closes all still open tab views when the plugin is loaded, because it causes bugs / empty windows otherwise
+        // Register the tab view before Obsidian restores the workspace. TabViewManager
+        // provides default review state for restored views, so pinned tabs can remain
+        // open across restarts instead of being detached on layout ready.
         this.tabViewManager = new TabViewManager(this.plugin);
-        this.plugin.app.workspace.onLayoutReady(async () => {
-            this.tabViewManager.closeAllTabViews();
-        });
 
         this.sidebarManager = new SidebarManager(
             this.plugin,
