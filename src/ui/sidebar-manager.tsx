@@ -12,7 +12,7 @@ export class SidebarManager {
     private plugin: Plugin;
     private settings: SRSettings;
     private nextNoteReviewHandler: NextNoteReviewHandler;
-    private reviewQueueListView: ReviewQueueListView;
+    private reviewQueueListView: ReviewQueueListView | null = null;
 
     private get app(): App {
         return this.plugin.app;
@@ -29,7 +29,7 @@ export class SidebarManager {
     }
 
     redraw(): void {
-        this.reviewQueueListView.redraw();
+        this.reviewQueueListView?.redraw();
     }
 
     private getActiveLeaf(type: string): WorkspaceLeaf | null {
@@ -56,13 +56,18 @@ export class SidebarManager {
         if (this.settings.enableNoteReviewPaneOnStartup) {
             await this.getActiveLeaf(REVIEW_QUEUE_VIEW_TYPE).setViewState({
                 type: REVIEW_QUEUE_VIEW_TYPE,
-                active: true,
+                // Keep the pane available without replacing the tab the user left active.
+                active: false,
             });
         }
     }
 
     async openReviewQueueView(): Promise<void> {
         const reviewQueueLeaf = this.getActiveLeaf(REVIEW_QUEUE_VIEW_TYPE);
+        await reviewQueueLeaf.setViewState({
+            type: REVIEW_QUEUE_VIEW_TYPE,
+            active: true,
+        });
         this.app.workspace.revealLeaf(reviewQueueLeaf);
     }
 }

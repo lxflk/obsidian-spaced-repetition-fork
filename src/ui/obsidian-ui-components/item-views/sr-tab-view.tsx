@@ -5,7 +5,7 @@ import {
     IFlashcardReviewSequencer,
     ReviewSequencerData,
 } from "src/card/flashcard-review-sequencer";
-import { DEBUG_MODE_ENABLED, SR_TAB_VIEW } from "src/constants";
+import { SR_TAB_VIEW } from "src/constants";
 import { Deck } from "src/deck/deck";
 import SRPlugin from "src/main";
 import { SRSettings } from "src/settings";
@@ -42,7 +42,6 @@ export class SRTabView extends ItemView {
     private reviewSequencer: IFlashcardReviewSequencer;
     private settings: SRSettings;
     private deckContainer: DeckContainer;
-    private openErrorCount: number = 0; // Counter for catching the first inevitable error but the letting the other through
     public backButton: ButtonComponent;
     private cardContainer: CardContainer;
     private reloadReviewSequencerPromise: Promise<void> | null = null;
@@ -123,7 +122,7 @@ export class SRTabView extends ItemView {
     /**
      * Initializes the SRTabView when opened by loading the review sequencer data
      * and setting up the deck and flashcard views if they are not already initialized.
-     * Catches and logs errors that occur during the initial loading process.
+     * Logs and propagates errors that occur during the initial loading process.
      */
     async onOpen() {
         try {
@@ -225,18 +224,8 @@ export class SRTabView extends ItemView {
                 void this._showDecksList(false);
             }
         } catch (e) {
-            /*
-             * There will be an error, when opening obsidian, because if a tab is still open from the last session,
-             * then it will be loaded before any plugin was loaded, so there is no possibility of cleaning it up fast enough.
-             * This will cause an error, where the sr data structure wasn't initialized just yet.
-             * Sadly there is no way to load the data before the plugin is loaded or close the tab on closing the window.
-             * So we have to live with this error and just catch it the first time around.
-             * Lets any other errors through that might occur.
-             */
-            if (this.openErrorCount > 0 || DEBUG_MODE_ENABLED) {
-                console.error(e);
-            }
-            this.openErrorCount++;
+            console.error("Failed to open the Spaced Repetition view", e);
+            throw e;
         }
     }
 

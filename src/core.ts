@@ -244,6 +244,7 @@ export class OsrCore {
 export class OsrAppCore extends OsrCore {
     private app: App;
     private _syncLock = false;
+    private loadVaultPromise: Promise<void> | null = null;
 
     get syncLock(): boolean {
         return this._syncLock;
@@ -255,9 +256,24 @@ export class OsrAppCore extends OsrCore {
     }
 
     async loadVault(): Promise<void> {
-        if (this._syncLock) {
+        if (this.loadVaultPromise) {
+            await this.loadVaultPromise;
             return;
         }
+
+        const loadVaultPromise = this.doLoadVault();
+        this.loadVaultPromise = loadVaultPromise;
+
+        try {
+            await loadVaultPromise;
+        } finally {
+            if (this.loadVaultPromise === loadVaultPromise) {
+                this.loadVaultPromise = null;
+            }
+        }
+    }
+
+    private async doLoadVault(): Promise<void> {
         this._syncLock = true;
 
         try {

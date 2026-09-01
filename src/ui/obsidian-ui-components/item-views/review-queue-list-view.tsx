@@ -48,7 +48,11 @@ export class ReviewQueueListView extends ItemView {
     }
 
     public getIcon(): string {
-        return "SpacedRepIcon";
+        return "lucide-file-clock";
+    }
+
+    public async onOpen(): Promise<void> {
+        this.redraw();
     }
 
     public onHeaderMenu(menu: Menu): void {

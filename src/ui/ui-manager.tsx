@@ -159,7 +159,7 @@ export class UIManager {
             (isMobile && this.plugin.data.settings.openViewInNewTabMobile);
 
         if (openInNewTab) {
-            this.tabViewManager.openSRTabView(this.plugin.osrAppCore, mode, singleNote);
+            await this.tabViewManager.openSRTabView(this.plugin.osrAppCore, mode, singleNote);
         } else {
             this.openFlashcardModal(this.plugin.osrAppCore, mode, singleNote);
         }

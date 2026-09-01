@@ -1,6 +1,7 @@
 import moment from "moment";
 
 import { ReviewResponse } from "src/algorithms/base/repetition-item";
+import { OsrAppCore } from "src/core";
 import { CardListType } from "src/deck/deck";
 import { NoteDueDateHistogram } from "src/due-date-histogram";
 import { ISRFile } from "src/file";
@@ -51,6 +52,43 @@ function checkScheduledNote(
 beforeAll(() => {
     setupStaticDateProvider20230906();
     unitTestSetupStandardDataStoreAlgorithm(DEFAULT_SETTINGS);
+});
+
+test("Concurrent vault loads wait for the in-progress load", async () => {
+    let finishProcessing: () => void;
+    const processing = new Promise<void>((resolve) => {
+        finishProcessing = resolve;
+    });
+    const app = {
+        vault: {
+            getMarkdownFiles: jest.fn().mockReturnValue([{ path: "Cards.md" }]),
+        },
+    };
+    const osrCore = new OsrAppCore(app as never);
+    const testCore = osrCore as unknown as {
+        settings: SRSettings;
+        loadInit: () => void;
+        createSrTFile: (file: unknown) => ISRFile;
+        processFile: (file: ISRFile) => Promise<void>;
+        finaliseLoad: () => void;
+    };
+    testCore.settings = DEFAULT_SETTINGS;
+    jest.spyOn(testCore, "loadInit").mockImplementation(() => undefined);
+    jest.spyOn(testCore, "createSrTFile").mockReturnValue({} as ISRFile);
+    const processFile = jest.spyOn(testCore, "processFile").mockImplementation(() => processing);
+    jest.spyOn(testCore, "finaliseLoad").mockImplementation(() => undefined);
+
+    const firstLoad = osrCore.loadVault();
+    const concurrentLoad = osrCore.loadVault();
+
+    expect(osrCore.syncLock).toBe(true);
+    expect(processFile).toHaveBeenCalledTimes(1);
+
+    finishProcessing!();
+    await Promise.all([firstLoad, concurrentLoad]);
+
+    expect(osrCore.syncLock).toBe(false);
+    expect(processFile).toHaveBeenCalledTimes(1);
 });
 
 test("No questions in the text; no files tagged as notes", async () => {
